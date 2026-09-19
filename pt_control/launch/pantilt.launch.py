@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Pan Tilt 100 control stack (dedicated bus); a shared-bus host re-implements this instead of including it."""
 
+from pathlib import Path
 import subprocess
 import sys
 import tempfile
@@ -8,7 +9,8 @@ import tempfile
 import yaml
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, OpaqueFunction, TimerAction
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, OpaqueFunction, RegisterEventHandler, TimerAction
+from launch.event_handlers import OnShutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node, SetRemap
@@ -47,18 +49,24 @@ def launch_setup(context):
 
     # The control plugin loads MJCF from disk. pt_mujoco's builder syncs frames, inertias and limits
     # from the URDF and composes the scene; pantilt_config picks the pt100/pt101 variant.
+    generated_model = None
     if mujoco_model:
         final_mujoco_model = mujoco_model
     elif hw_type == 'mujoco':
         with tempfile.NamedTemporaryFile(
                 suffix='.xml', prefix='pantilt_mujoco_', delete=False) as mjcf_file:
             final_mujoco_model = mjcf_file.name
-        subprocess.run([
-            sys.executable, '-m', 'pt_mujoco.build_mujoco_models',
-            '--control-package', pkg_ctrl, '--description-package', pkg_desc,
-            '--variant', pantilt_config, '--output', final_mujoco_model, '--absolute',
-            '--scene', mujoco_scene,
-        ], capture_output=True, text=True, check=True)
+        generated_model = final_mujoco_model
+        try:
+            subprocess.run([
+                sys.executable, '-m', 'pt_mujoco.build_mujoco_models',
+                '--control-package', pkg_ctrl, '--description-package', pkg_desc,
+                '--variant', pantilt_config, '--output', final_mujoco_model, '--absolute',
+                '--scene', mujoco_scene,
+            ], capture_output=True, text=True, check=True)
+        except subprocess.CalledProcessError:
+            Path(generated_model).unlink(missing_ok=True)
+            raise
     else:
         final_mujoco_model = ''
 
@@ -198,6 +206,9 @@ def launch_setup(context):
 
     if diagnostics:
         actions.append(TimerAction(period=3.0, actions=[motor_diagnostics]))
+
+    if generated_model:
+        actions.append(RegisterEventHandler(OnShutdown(on_shutdown=lambda *_: Path(generated_model).unlink(missing_ok=True))))
 
     return actions
 

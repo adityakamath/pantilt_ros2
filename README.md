@@ -62,7 +62,7 @@ The MuJoCo simulation (`sim:=true`) needs a few more packages:
 
 ```bash
 sudo apt install ros-kilted-mujoco-ros2-control ros-kilted-mujoco-ros2-control-plugins ros-kilted-image-transport-plugins
-pip install -r pantilt_ros2/pt_mujoco/requirements.txt     # MuJoCo and the model builder's Python dependencies
+pip install -r src/pantilt_ros2/pt_mujoco/requirements.txt # MuJoCo and the model builder's Python dependencies
 cd <your workspace>/src
 git clone https://github.com/adityakamath/mujoco_ros2_plugins.git      # simulated /emergency_stop
 cd ..

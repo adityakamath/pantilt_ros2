@@ -24,7 +24,7 @@ def launch_setup(context):
     """Include pt_control's control stack, plus either oakd (real) or nothing more (sim - MuJoCo is self-contained)."""
     use_mock     = LaunchConfiguration('use_mock').perform(context)
     sim          = _launch_arg_as_bool(context, 'sim')
-    mujoco_gui   = LaunchConfiguration('mujoco_gui').perform(context)
+    mujoco_gui   = _launch_arg_as_bool(context, 'mujoco_gui')
     mujoco_scene = LaunchConfiguration('mujoco_scene')
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
 
@@ -44,7 +44,7 @@ def launch_setup(context):
         'ros2_control_hardware_type': hw_type,
     }
     if hw_type == 'mujoco':
-        pt_control_args['mujoco_headless'] = 'false' if mujoco_gui.lower() in ('true', '1') else 'true'
+        pt_control_args['mujoco_headless'] = 'false' if mujoco_gui else 'true'
         pt_control_args['mujoco_scene'] = mujoco_scene
 
     pantilt_control_launch = IncludeLaunchDescription(

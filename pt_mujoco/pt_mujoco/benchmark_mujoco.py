@@ -28,10 +28,12 @@ def benchmark(directory):
                 trace.append(runtime.positions()[joint])
             trace = np.array(trace)
             settled = np.flatnonzero(np.abs(trace - target) > .02 * abs(target))
+            # None when the final sample is still outside the 2% band
+            settle_seconds = 0. if not settled.size else None if settled[-1] == len(trace) - 1 else float((settled[-1] + 1) * runtime.model.opt.timestep)
             rows.append({'variant': variant, 'motion': motion, 'joint': PAYLOAD[joint], 'target': target,
                          'seconds': 2, 'final_error': float(target - trace[-1]),
                          'overshoot_fraction': float(max(0., np.max(trace * np.sign(target)) - abs(target)) / abs(target)),
-                         'settle_seconds': float((settled[-1] + 1) * runtime.model.opt.timestep) if settled.size else 0.,
+                         'settle_seconds': settle_seconds,
                          'total_mass_kg': float(runtime.model.body_mass.sum())})
     return rows
 
