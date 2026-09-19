@@ -102,10 +102,14 @@ def sync_payload_geometry(spec, urdf):
             spec.mesh(geom.meshname).scale = list(map(float, matches[0].find('geometry/mesh').get('scale', '1 1 1').split()))
 
 
-def sync_velocity_limits(spec, urdf, control):
-    """Embed the configured joint limits so the viewer needs only the generated XML."""
+def joint_limits(control):
+    """The controller_manager joint_limits block a host's control config gives the payload."""
     settings = yaml.safe_load((control / 'config/pantilt_config.yaml').read_text())
-    payload_limits = settings['controller_manager']['ros__parameters'].get('joint_limits', {})
+    return settings['controller_manager']['ros__parameters'].get('joint_limits', {})
+
+
+def sync_velocity_limits(spec, urdf, payload_limits):
+    """Embed the configured joint limits so the viewer needs only the generated XML."""
     for actuator in spec.actuators:
         name = actuator.target
         # Real-mode URDF <limit velocity> is deliberately 1e6; use the
@@ -137,20 +141,25 @@ def sync_velocity_limits(spec, urdf, control):
         spec.add_numeric(name='velocity_limit_' + name, data=[limit])
 
 
-def build_robot_spec(variant, description_dir=None, *, control_dir=None):
-    """Return an editable native spec with absolute assets for future scene composition."""
+def build_payload_spec(variant, urdf, payload_limits, description_dir=None):
+    """Return an editable payload spec (world -> pantilt_base_link) with absolute assets.
+
+    `urdf` is any expanded URDF that contains the pan-tilt chain (this package's standalone one, or
+    a host robot's), so the host keeps its own URDF as the source of truth for the payload's frames.
+    A host attaches the spec at its mount frame with MjSpec.attach(), after naming its root default
+    (spec.default.name) as compose_scene does; scenes attach it the same way. Physics options are
+    left to the composed model (configure_physics), not set here.
+    """
     if variant not in VARIANTS:
         raise ValueError(f'Unknown variant: {variant}')
-    control = Path(control_dir).resolve() if control_dir else control_package()
     packages = {'pt_description': Path(description_dir).resolve() if description_dir else package_share('pt_description')}
     with package_paths(packages):
         doc = xacro.process_file(str(SIM_PACKAGE / 'mjcf/pt.mjcf.xacro'),
                                  mappings={'pantilt_config': variant})
     # MuJoCo parses includes and maintains model references; no custom XML assembly.
     spec = mujoco.MjSpec.from_string(doc.toxml())
-    urdf = payload_urdf(variant, packages, control)
     sync_payload_geometry(spec, urdf)
-    sync_velocity_limits(spec, urdf, control)
+    sync_velocity_limits(spec, urdf, payload_limits)
     sync_payload_parameters(spec, urdf, yaml.safe_load((SIM_PACKAGE / 'config/mujoco.yaml').read_text()), set_origin)
     camera = spec.camera('oak_rgb')
     if camera is not None:
@@ -158,6 +167,17 @@ def build_robot_spec(variant, description_dir=None, *, control_dir=None):
         # -Y, up = its +Z), which is rolled 180 degrees, so the image is upside down like the real one.
         camera.alt.type = mujoco.mjtOrientation.mjORIENTATION_XYAXES
         camera.alt.xyaxes = [0, -1, 0, 0, 0, 1]
+    return spec
+
+
+def build_robot_spec(variant, description_dir=None, *, control_dir=None):
+    """The payload alone, synced from this package's standalone URDF."""
+    if variant not in VARIANTS:
+        raise ValueError(f'Unknown variant: {variant}')
+    control = Path(control_dir).resolve() if control_dir else control_package()
+    description = Path(description_dir).resolve() if description_dir else package_share('pt_description')
+    urdf = payload_urdf(variant, {'pt_description': description}, control)
+    spec = build_payload_spec(variant, urdf, joint_limits(control), description)
     configure_physics(spec)
     return spec
 

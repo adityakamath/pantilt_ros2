@@ -8,11 +8,6 @@
 -->
 <mujoco model="pantilt_shared" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <compiler angle="radian"/>
-  <!-- implicitfast solves actuator damping implicitly - MuJoCo's own docs call it "a strict
-       improvement" over the default Euler for actuator-driven models like this one, at
-       equivalent cost. -->
-  <option integrator="implicitfast"/>
-
   <asset>
     <material name="light_grey" rgba="0.8 0.8 0.8 1.0"/>
     <material name="charcoal" rgba="0.15 0.15 0.15 1.0"/>

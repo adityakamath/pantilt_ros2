@@ -1,6 +1,8 @@
 # Simulation-only approximations. Not a conversion of servo EEPROM registers.
 physics:
   timestep: 0.002
+  # Solves actuator damping implicitly; MuJoCo's docs call it a strict improvement over Euler for
+  # actuator-driven models like this one, at equivalent cost.
   integrator: implicitfast
   iterations: 60
 actuators:

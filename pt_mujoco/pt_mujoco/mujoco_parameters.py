@@ -34,6 +34,19 @@ def set_inertia(body, mass, center, inertia):
     body.mass, body.ipos, body.iquat, body.inertia = mass, center, quaternion, values
 
 
+def payload_links(urdf, root='pantilt_base_link'):
+    """Names of the URDF links at or below the payload's root, so a host robot's URDF also works."""
+    children = {}
+    for joint in urdf.findall('joint'):
+        children.setdefault(joint.find('parent').get('link'), []).append(joint.find('child').get('link'))
+    found, pending = [], [root]
+    while pending:
+        link = pending.pop()
+        found.append(link)
+        pending.extend(children.get(link, []))
+    return found
+
+
 def sync_payload_parameters(spec, urdf, simulation, set_origin):
     """URDF owns inertias and effort limits; YAML owns the servo approximation."""
     # No mass is inferred from CAD volume or retained from the MJCF. Frames without URDF
@@ -50,14 +63,15 @@ def sync_payload_parameters(spec, urdf, simulation, set_origin):
                 raise ValueError(f'Missing URDF inertia for moving body {body.name}')
             body.explicitinertial = True
             body.mass, body.ipos, body.inertia = 0, [0, 0, 0], [0, 0, 0]
-    for link in urdf.findall('link'):
-        element = link.find('inertial')
+    for name in payload_links(urdf):
+        link = urdf.find(f"link[@name='{name}']")
+        element = link.find('inertial') if link is not None else None
         if element is None:
             continue
-        body = spec.body(link.get('name'))
+        body = spec.body(name)
         if body is None:
-            raise ValueError(f"URDF inertia has no MuJoCo body: {link.get('name')}")
-        mass = positive(element.find('mass').get('value'), link.get('name') + ' mass')
+            raise ValueError(f'URDF inertia has no MuJoCo body: {name}')
+        mass = positive(element.find('mass').get('value'), name + ' mass')
         center, rotation = pose(element.find('origin'), set_origin)
         raw = element.find('inertia')
         xx, yy, zz, xy, xz, yz = [float(raw.get(k)) for k in ('ixx', 'iyy', 'izz', 'ixy', 'ixz', 'iyz')]
