@@ -1,0 +1,7 @@
+# Same slice as the real bringup (pt_bringup/config/depthimage_to_laserscan.yaml), labelled in oak_link.
+/depth_to_scan:
+  ros__parameters:
+    scan_height: 1
+    range_min: 0.45
+    range_max: 4.0
+    output_frame: "oak_link"

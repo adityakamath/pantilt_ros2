@@ -101,10 +101,7 @@
       </collision>
     </link>
 
-    <!-- real mode: velocity="1e6" (unreachable) disables JointSaturationLimiter's clipping,
-         since joy_teleop's absolute position jumps would otherwise trip spurious limit
-         errors. gazebo mode: uses the real computed ceiling instead, since GazeboSimSystem
-         actually enforces this limit on the simulated joint. -->
+    <!-- real/mujoco: 1e6 avoids spurious limit trips on joystick jumps; gazebo enforces the real ceiling -->
 
     <!-- Shoulder-pan joint (revolute; was "pan_joint") -->
     <joint name="shoulder_pan_joint" type="revolute">
@@ -112,7 +109,7 @@
       <child link="shoulder_link"/>
       <origin xyz="${shoulder_pan_x} 0 ${shoulder_pan_z}" rpy="0 0 0"/>
       <axis xyz="0 0 1"/>
-      <limit lower="${shoulder_pan_lower}" upper="${shoulder_pan_upper}" effort="${max_torque_nm}" velocity="${1e6 if '$(arg ros2_control_hardware_type)' == 'real' else pantilt_max_velocity_rads}"/>
+      <limit lower="${shoulder_pan_lower}" upper="${shoulder_pan_upper}" effort="${max_torque_nm}" velocity="${1e6 if '$(arg ros2_control_hardware_type)' in ('real', 'mujoco') else pantilt_max_velocity_rads}"/>
     </joint>
 
     <!-- Tilt joint (revolute) -->
@@ -121,7 +118,7 @@
       <child link="tilt_link"/>
       <origin xyz="${tilt_joint_x} 0 ${tilt_joint_z}" rpy="${tilt_joint_rx} ${tilt_joint_ry} 0"/>
       <axis xyz="0 0 -1"/>
-      <limit lower="${tilt_joint_lower}" upper="${tilt_joint_upper}" effort="${max_torque_nm}" velocity="${1e6 if '$(arg ros2_control_hardware_type)' == 'real' else pantilt_max_velocity_rads}"/>
+      <limit lower="${tilt_joint_lower}" upper="${tilt_joint_upper}" effort="${max_torque_nm}" velocity="${1e6 if '$(arg ros2_control_hardware_type)' in ('real', 'mujoco') else pantilt_max_velocity_rads}"/>
     </joint>
 
     <!-- OAK-D-S2 Camera + IMU -->

@@ -1,0 +1,14 @@
+# Simulation-only approximations. Not a conversion of servo EEPROM registers.
+physics:
+  timestep: 0.002
+  # Solves actuator damping implicitly
+  integrator: implicitfast
+  iterations: 60
+actuators:
+  # BAM-identified STS3215 values, applied over the MJCF defaults at build time (torque limit: URDF effort)
+  pantilt:
+    position_gain: 42.911886
+    velocity_gain: 0.0
+    damping: 1.057835
+    armature: 0.032460
+    frictionloss: 0.195871

@@ -1,0 +1,8 @@
+# Position controller; the spawner reads it with --param-file (also used by host robots).
+pantilt_controller:
+  ros__parameters:
+    type: forward_command_controller/ForwardCommandController
+    joints:
+      - shoulder_pan_joint
+      - tilt_joint
+    interface_name: position

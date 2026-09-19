@@ -2,10 +2,7 @@
 <robot name="depthai_camera"
 	xmlns:xacro="http://ros.org/wiki/xacro">
 
-	<!--
-	  Custom OAK-D-S2 camera macro, shared by both pt100/pt101.
-	  This version allows direct color parameterization (r/g/b/a) for the mesh material.
-	-->
+	<!-- OAK-D S2 camera macro shared by pt100/pt101, with r/g/b/a mesh colour parameters -->
 
 	<xacro:macro name="oakd_s2_camera"
 		params="camera_name parent base_frame 

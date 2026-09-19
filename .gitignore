@@ -36,3 +36,5 @@ dist/
 
 # Test results
 test_results/
+.pytest_cache/
+.ruff_cache/

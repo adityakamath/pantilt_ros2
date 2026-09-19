@@ -7,7 +7,6 @@ install(DIRECTORY
   urdf
   meshes
   launch
-  mjcf
   DESTINATION share/${PROJECT_NAME}/
 )
 

@@ -8,30 +8,19 @@
   <xacro:arg name="use_sync_write"         default="true"/>
   <xacro:arg name="sts3215_max_vel_steps" default="3400"/>   <!-- STS3215=3400, STS3032=2900, STS3235=3400 -->
   <xacro:arg name="proportional_vel_max"   default="0"/>      <!-- [0-max_velocity_steps]; 0 = each joint uses commanded velocity -->
-  <!-- Motor IDs, step-centering, and joint limits are NOT xacro:args here - they're
-       physical-calibration constants for this mechanism (motor wiring, servo centering),
-       not per-deployment connection settings, so pantilt.joints.xacro's macro defaults are
-       their single source of truth (same convention as so101.control.xacro/so100.control.xacro
-       in so_arm_ros2, which hardcode motor IDs/joint limits as fixed xacro:property values
-       rather than sourcing them from an external launch-time YAML). A host embedding this
-       mechanism on a shared bus (e.g. lekiwi_ros2's base_pantilt.control.xacro) can still
-       override any of pantilt_joints' macro params explicitly if it ever needs different
-       values - see pantilt.joints.xacro. -->
+  <!-- Servo EEPROM profile (0-254), defaults match pantilt.joints.xacro; urdf_config.yaml sets them for tuning -->
+  <xacro:arg name="internal_max_vel"       default="65"/>
+  <xacro:arg name="internal_max_acc"       default="50"/>
+  <xacro:arg name="internal_acc_coeff"     default="0"/>
+  <!-- Motor IDs, centres and joint limits are calibration constants: pantilt.joints.xacro macro defaults hold them -->
 
   <!-- Simulation -->
-  <!-- "real" (default) keeps the STS3215 serial hardware plugin below unchanged.
-       "gazebo" swaps the <hardware> plugin for gz_ros2_control/GazeboSimSystem.
-       "mujoco" swaps it for mujoco_ros2_control/MujocoSystemInterface.
-       Both implement the same SystemInterface contract - the joints and controllers stay
-       identical in all three cases. -->
+  <!-- Hardware plugin: real (STS3215, default), gazebo or mujoco; joints and controllers are identical -->
   <xacro:arg name="ros2_control_hardware_type" default="real"/>
   <!-- Path to the controllers YAML the embedded controller_manager should load; only
        used when the <gazebo> plugin below is actually instantiated (i.e. in sim). -->
   <xacro:arg name="simulation_controllers" default=""/>
-  <!-- mujoco mode only: path to the xacro-generated MJCF scene (pt_description/mjcf/
-       pantilt.mjcf.xacro, xacro-processed at launch time with pantilt_config picking the
-       pt100/pt101 mesh variant - see pt_control/launch/pantilt.launch.py) and whether to
-       open the MuJoCo Simulate viewer window. -->
+  <!-- mujoco only: generated MJCF path and whether to open the viewer -->
   <xacro:arg name="mujoco_model" default=""/>
   <xacro:arg name="mujoco_headless" default="false"/>
 
@@ -39,14 +28,8 @@
        because pantilt_joints (called below) writes it per joint as max_velocity_steps. -->
   <xacro:property name="sts3215_max_vel_steps" value="$(arg sts3215_max_vel_steps)"/>
 
-  <!-- Torque limit as a top-level property — required by pantilt.module.xacro for the URDF
-       <limit> elements on the revolute joints.
-       pantilt_max_velocity_rads duplicates pantilt_joints' own local computation
-       (pantilt.joints.xacro) - only used by module.xacro's gazebo-mode <limit velocity>,
-       real mode keeps velocity="1e6" (see module.xacro's comment on why) regardless. -->
-  <!-- This project runs the 12V STS3215 variant: 30 kgf*cm stall torque per Feetech's
-       datasheet for that voltage option (not the 7.4V/19.5 kgf*cm variant used by stock
-       SO-ARM100/101). -->
+  <!-- Torque limit for the module's revolute joint <limit> elements -->
+  <!-- 12V STS3215: 30 kgf*cm stall torque -->
   <xacro:property name="max_torque_nm"    value="2.942"/>  <!-- N⋅m (30 kgf⋅cm @ 12V) -->
   <xacro:property name="pantilt_max_velocity_steps" value="${int(sts3215_max_vel_steps * 0.85)}"/>
   <xacro:property name="pantilt_max_velocity_rads"  value="${pantilt_max_velocity_steps * 2 * pi / 4096}"/>
@@ -78,7 +61,10 @@
 
     <xacro:pantilt_joints
         sts3215_max_vel_steps="${sts3215_max_vel_steps}"
-        ros2_control_hardware_type="$(arg ros2_control_hardware_type)"/>
+        ros2_control_hardware_type="$(arg ros2_control_hardware_type)"
+        internal_max_vel="$(arg internal_max_vel)"
+        internal_max_acc="$(arg internal_max_acc)"
+        internal_acc_coeff="$(arg internal_acc_coeff)"/>
   </ros2_control>
 
 </robot>

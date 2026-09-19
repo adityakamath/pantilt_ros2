@@ -23,9 +23,7 @@ jobs:
 
   build:
     name: colcon build (ros:kilted)
-    # There's no pytest suite in this repo yet, so this verifies the packages actually
-    # build and pt_description's xacro processes cleanly - not a substitute for real tests,
-    # but it catches broken XML/CMakeLists/xacro syntax before it reaches a robot.
+    # Builds the packages and runs the pytest suites (URDF, MuJoCo models, launch arguments)
     runs-on: ubuntu-latest
     container: ros:kilted
     timeout-minutes: 10
@@ -37,6 +35,7 @@ jobs:
       - name: Install ROS dependencies
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
+            python3-pip python3-pytest \
             ros-kilted-controller-manager \
             ros-kilted-forward-command-controller \
             ros-kilted-joint-state-broadcaster \
@@ -46,16 +45,39 @@ jobs:
             ros-kilted-xacro
 
       - name: colcon build
-        # pt_bringup is excluded: it needs cloudini, point_cloud_interfaces, and
-        # depthai-ros, none of which are plain apt packages - same reason lekiwi_ros2's
-        # CI excludes it. pt_description and pt_control have no such dependency and build
-        # standalone.
+        # pt_bringup is excluded: cloudini, point_cloud_interfaces and depthai-ros are not plain apt packages
         run: |
           . /opt/ros/kilted/setup.sh
-          colcon build --packages-select pt_description pt_control
+          colcon build --packages-select pt_description pt_mujoco pt_control
 
       - name: xacro sanity check
         run: |
           . /opt/ros/kilted/setup.sh
           . install/setup.sh
           xacro src/pantilt_ros2/pt_description/urdf/pantilt.urdf.xacro > /dev/null
+
+      - name: pytest
+        # pt_bringup is not built here (see above) but its launch file is only parsed, not started.
+        run: |
+          . /opt/ros/kilted/setup.sh
+          . install/setup.sh
+          pip install --break-system-packages -r src/pantilt_ros2/pt_mujoco/requirements.txt
+          pytest src/pantilt_ros2/pt_description/test src/pantilt_ros2/pt_control/test src/pantilt_ros2/pt_mujoco/test
+
+  mujoco:
+    name: MuJoCo models and viewer (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install simulation dependencies
+        run: pip install -e ./pt_mujoco "pytest<8"
+      - name: Validate generated models, dynamics and URDF geometry
+        run: pytest pt_mujoco/test -q

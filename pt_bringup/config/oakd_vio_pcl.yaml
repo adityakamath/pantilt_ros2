@@ -1,28 +1,19 @@
-# Overlay for oakd_vio.yaml - loaded ON TOP of it by oakd.launch.py when pointcloud:=true.
-# Only contains the keys that differ from the base profile; everything else (RGB defaults, IMU,
-# VIO, stereo depth_preset/threshold filter, image_transport plugins) is shared and stays in
-# oakd_vio.yaml only.
+# Overlay on oakd_vio.yaml when pointcloud:=true; holds only the keys that differ
 /oak:
   ros__parameters:
     pipeline_gen:
       i_enable_rgbd: true  # generates /oak/rgbd/points
     rgb:
-      # Explicit guard, not currently a real override (oakd_vio.yaml's rgb is already 640x400) -
-      # a smaller RGB size is known to crash this profile in combination with i_aligned/
-      # i_enable_rgbd below, so this stays pinned regardless of what the base file does.
+      # Pinned: a smaller RGB size crashes this profile with i_aligned/i_enable_rgbd
       i_width: 640
       i_height: 400
     stereo:
       i_aligned: true  # depth aligned to RGB, so point cloud colors line up with geometry
-      # Explicit guard, not currently a real override (oakd_vio.yaml's decimation is already
-      # off) - decimation is known to crash this profile in combination with i_aligned/
-      # i_enable_rgbd, so this stays pinned regardless of what the base file does.
+      # Pinned: decimation crashes this profile with i_aligned/i_enable_rgbd
       i_enable_decimation_filter: false
       i_fps: 30.0  # must match rgb's rate or depth/scan/rgbd silently stop publishing
 
-# Cloudini point cloud compression configuration
-# Compresses /oak/rgbd/points → /oak/rgbd/points/compressed
-# Using 1mm resolution (conservative for depth cameras, ±0.5mm max quantization error)
+# Cloudini compression of /oak/rgbd/points at 1 mm resolution
 /cloudini_compressor:
   ros__parameters:
     compressing: true

@@ -1,0 +1,41 @@
+<!-- Variant-independent PT100/PT101 MJCF: compiler options, meshes, defaults, actuators; mesh paths are absolute because meshdir resolves against the top-level file -->
+<mujoco model="pantilt_shared" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <compiler angle="radian"/>
+  <asset>
+    <material name="light_grey" rgba="0.8 0.8 0.8 1.0"/>
+    <material name="charcoal" rgba="0.15 0.15 0.15 1.0"/>
+    <material name="transparent" rgba="1 0 0 0.3"/>
+
+    <!-- Shared across pt100/pt101 - only pantilt_base_link's and shoulder_link's own body
+         meshes differ between variants (declared in pantilt.mjcf.xacro). -->
+    <mesh name="pan_motor" file="$(find pt_description)/meshes/pan_motor.stl"/>
+    <mesh name="tilt_motor" file="$(find pt_description)/meshes/tilt_motor.stl"/>
+    <mesh name="tilt_joint_oakd_s2" file="$(find pt_description)/meshes/tilt_joint_oakd_s2.stl"/>
+    <mesh name="oakd_s2" file="$(find pt_description)/meshes/oakd_s2.stl"/>
+  </asset>
+
+  <default>
+    <xacro:include filename="$(find pt_mujoco)/mjcf/sts3215.mjcf.xacro"/>
+    <default class="pantilt">
+      <default class="visual">
+        <geom type="mesh" contype="0" conaffinity="0" density="0" group="2"/>
+      </default>
+      <default class="collision">
+        <geom type="mesh" group="3" material="transparent"/>
+      </default>
+    </default>
+  </default>
+
+  <actuator>
+    <position class="pt_sts3215" name="shoulder_pan_joint" joint="shoulder_pan_joint" inheritrange="1"/>
+    <position class="pt_sts3215" name="tilt_joint" joint="tilt_joint" inheritrange="1"/>
+  </actuator>
+
+  <!-- Adjacent bodies' collision meshes overlap slightly at the joint (real geometry) -
+       without this, MuJoCo applies a large corrective force from step 0. -->
+
+  <contact>
+    <exclude body1="pantilt_base_link" body2="shoulder_link"/>
+    <exclude body1="shoulder_link" body2="tilt_link"/>
+  </contact>
+</mujoco>

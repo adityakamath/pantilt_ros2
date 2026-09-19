@@ -16,9 +16,7 @@
 	  <origin xyz="0 0 0" rpy="0 0 0"/>
 	</xacro:pantilt_module>
 
-  <!-- Gazebo simulation: spawns controller_manager inside the gz_sim process, loading
-       $(arg simulation_controllers). Inert (ignored) outside Gazebo, so this is safe to
-       leave in place regardless of ros2_control_hardware_type. -->
+  <!-- Gazebo only: spawns controller_manager in gz_sim; inert elsewhere -->
   <gazebo>
     <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
       <parameters>$(arg simulation_controllers)</parameters>

@@ -1,0 +1,15 @@
+# Loaded by pt_control when ros2_control_hardware_type:=mujoco; topics match the real depthai driver.
+/**:
+  ros__parameters:
+    mujoco_plugins:
+      mujoco_camera_plugin:
+        type: "mujoco_ros2_control_plugins/CameraPlugin"
+        camera_publish_rate: 30.0
+        oak_rgb:
+          frame_name: oak_rgb_camera_optical_frame
+          info_topic: /oak/rgb/camera_info
+          image_topic: /oak/rgb/image_raw
+          depth_topic: /oak/stereo/image_raw
+      # Simulated /emergency_stop
+      emergency_stop_plugin:
+        type: "mujoco_ros2_plugins/EmergencyStopPlugin"

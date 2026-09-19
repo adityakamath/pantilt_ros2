@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!-- Payload MJCF entry point: pantilt_body fixed to the world origin, robot only -->
+<mujoco xmlns:xacro="http://www.ros.org/wiki/xacro" model="pantilt">
+  <xacro:arg name="pantilt_config" default="pt101"/>
+  <xacro:include filename="$(find pt_mujoco)/mjcf/pantilt.mjcf.xacro"/>
+
+  <worldbody>
+    <xacro:pantilt_body/>
+  </worldbody>
+</mujoco>

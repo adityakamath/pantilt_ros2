@@ -4,16 +4,7 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="pantilt">
-  <!-- [0-max_velocity_steps]; 0 = each joint uses commanded velocity -->
-  <!-- Motor IDs, step-centering, and joint limits are NOT xacro:args here - they're
-       physical-calibration constants for this mechanism (motor wiring, servo centering),
-       not per-deployment connection settings, so pantilt.joints.xacro's macro defaults are
-       their single source of truth (same convention as so101.control.xacro/so100.control.xacro
-       in so_arm_ros2, which hardcode motor IDs/joint limits as fixed xacro:property values
-       rather than sourcing them from an external launch-time YAML). A host embedding this
-       mechanism on a shared bus (e.g. lekiwi_ros2's base_pantilt.control.xacro) can still
-       override any of pantilt_joints' macro params explicitly if it ever needs different
-       values - see pantilt.joints.xacro. -->
+  <!-- Motor IDs, centres and joint limits are calibration constants: pantilt.joints.xacro macro defaults hold them -->
   <!-- ROS 2 CONTROL -->
   <ros2_control name="pantilt_control" type="system">
     <hardware>
@@ -36,9 +27,9 @@
       <param name="max_velocity_steps">3400</param>
       <param name="max_velocity">4.433204476989503</param>
       <param name="position_center_steps">2048</param>
-      <param name="internal_max_vel">254</param>
-      <param name="internal_max_acc">254</param>
-      <param name="internal_acc_coeff">100</param>
+      <param name="internal_max_vel">65</param>
+      <param name="internal_max_acc">50</param>
+      <param name="internal_acc_coeff">0</param>
       <command_interface name="position"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
@@ -58,9 +49,9 @@
       <param name="max_velocity_steps">3400</param>
       <param name="max_velocity">4.433204476989503</param>
       <param name="position_center_steps">2048</param>
-      <param name="internal_max_vel">254</param>
-      <param name="internal_max_acc">254</param>
-      <param name="internal_acc_coeff">100</param>
+      <param name="internal_max_vel">65</param>
+      <param name="internal_max_acc">50</param>
+      <param name="internal_acc_coeff">0</param>
       <command_interface name="position"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
@@ -71,10 +62,7 @@
       <state_interface name="is_moving"/>
     </joint>
   </ros2_control>
-  <!--
-	  Custom OAK-D-S2 camera macro, shared by both pt100/pt101.
-	  This version allows direct color parameterization (r/g/b/a) for the mesh material.
-	-->
+  <!-- OAK-D S2 camera macro shared by pt100/pt101, with r/g/b/a mesh colour parameters -->
   <!-- Standalone pantilt module instantiation -->
   <link name="base_footprint"/>
   <!-- Material definitions (referenced by links below) -->
@@ -167,10 +155,7 @@
       </geometry>
     </collision>
   </link>
-  <!-- real mode: velocity="1e6" (unreachable) disables JointSaturationLimiter's clipping,
-         since joy_teleop's absolute position jumps would otherwise trip spurious limit
-         errors. gazebo mode: uses the real computed ceiling instead, since GazeboSimSystem
-         actually enforces this limit on the simulated joint. -->
+  <!-- real/mujoco: 1e6 avoids spurious limit trips on joystick jumps; gazebo enforces the real ceiling -->
   <!-- Shoulder-pan joint (revolute; was "pan_joint") -->
   <joint name="shoulder_pan_joint" type="revolute">
     <parent link="pantilt_base_link"/>
@@ -218,9 +203,7 @@
     <child link="oak_link_model_origin"/>
     <origin rpy="1.5707963267948966 0 1.5707963267948966" xyz="0 0 0"/>
   </joint>
-  <!-- Gazebo simulation: spawns controller_manager inside the gz_sim process, loading
-       $(arg simulation_controllers). Inert (ignored) outside Gazebo, so this is safe to
-       leave in place regardless of ros2_control_hardware_type. -->
+  <!-- Gazebo only: spawns controller_manager in gz_sim; inert elsewhere -->
   <gazebo>
     <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
       <parameters></parameters>
