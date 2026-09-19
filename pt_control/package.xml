@@ -30,6 +30,7 @@
   <exec_depend>mujoco_ros2_control_plugins</exec_depend>
   <exec_depend>image_transport</exec_depend>
   <exec_depend>compressed_image_transport</exec_depend>
+  <exec_depend>depthimage_to_laserscan</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
 
   <test_depend>ament_cmake_pytest</test_depend>

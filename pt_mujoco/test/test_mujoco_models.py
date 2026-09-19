@@ -225,9 +225,10 @@ def test_limits_regenerate_from_edited_configuration_and_urdf(workspace):
 def test_config_overrides_velocity_and_position_limits(workspace):
     config = workspace.control / 'config/pantilt_config.yaml'
     settings = yaml.safe_load(config.read_text())
-    limits = settings['controller_manager']['ros__parameters']['joint_limits']
+    limits = settings['controller_manager']['ros__parameters'].setdefault('joint_limits', {})
     for name, speed, low, high in [('shoulder_pan_joint', .7, -.4, .5), ('tilt_joint', .9, -.6, .3)]:
-        limits[name].update(has_velocity_limits=True, max_velocity=speed, min_position=low, max_position=high)
+        limits.setdefault(name, {}).update(has_velocity_limits=True, max_velocity=speed, has_position_limits=True,
+                                        min_position=low, max_position=high)
     config.write_text(yaml.safe_dump(settings))
     output = workspace.simulation.parent / 'limits.xml'
     builder.build('pt101', output, description_dir=workspace.description, control_dir=workspace.control)
@@ -348,3 +349,20 @@ def test_inconsistent_parameters_fail_generation(workspace, failure):
 def test_unknown_variant_is_rejected():
     with pytest.raises(ValueError):
         builder.build_robot_spec('pt102')
+
+
+@pytest.mark.parametrize('variant', VARIANTS)
+@pytest.mark.parametrize('joint', JOINTS)
+@pytest.mark.parametrize('sign', (1, -1))
+def test_instant_jump_to_a_limit_barely_penetrates_the_end_stop(variant, joint, sign):
+    """ros2_control's limiter deactivates the controller when the measured position passes the URDF limit."""
+    model = mujoco.MjModel.from_xml_path(str(snapshot(variant)))
+    data = mujoco.MjData(model)
+    limit = model.joint(joint).range[1]
+    data.ctrl[model.actuator(joint).id] = sign * limit
+    peak = 0.
+    for _ in range(2000):
+        mujoco.mj_step(model, data)
+        peak = max(peak, sign * data.qpos[model.joint(joint).qposadr[0]])
+    assert peak - limit < .002, peak - limit
+

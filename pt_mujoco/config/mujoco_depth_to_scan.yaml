@@ -1,0 +1,11 @@
+# Simulated /oak/scan: the same depthimage_to_laserscan slice the real OAK-D bring-up runs
+# (pt_bringup/config/depthimage_to_laserscan.yaml), fed by the camera plugin's depth image. Only the
+# frame differs: the scan is labelled in oak_link, the camera-aligned body frame (x forward, y left,
+# z along the image's up), which carries the camera's inverted mounting; the real driver's own
+# oak_rgb_camera_frame plays that role on hardware.
+/depth_to_scan:
+  ros__parameters:
+    scan_height: 1
+    range_min: 0.45
+    range_max: 4.0
+    output_frame: "oak_link"

@@ -175,6 +175,16 @@ def launch_setup(context):
                 remappings=[('in', '/oak/rgb/image_raw'), ('out/compressed', '/oak/rgb/image_raw/compressed')],
             ),
             Node(
+                package='depthimage_to_laserscan',
+                executable='depthimage_to_laserscan_node',
+                name='depth_to_scan',
+                output='log',
+                parameters=[f'{pkg_mujoco}/config/mujoco_depth_to_scan.yaml', {'use_sim_time': True}],
+                # The simulated depth shares the RGB camera's intrinsics, and has no camera_info of its own.
+                remappings=[('depth', '/oak/stereo/image_raw'), ('depth_camera_info', '/oak/rgb/camera_info'),
+                            ('scan', '/oak/scan')],
+            ),
+            Node(
                 package='tf2_ros',
                 executable='static_transform_publisher',
                 name='oak_optical_frame_publisher',
@@ -197,7 +207,8 @@ def launch_setup(context):
         TimerAction(period=2.5, actions=[Node(
             package='controller_manager', executable='spawner',
             arguments=['pantilt_controller', '-c', 'controller_manager',
-                       '--controller-manager-timeout', '30'], output='both',
+                       '--controller-manager-timeout', '30',
+                       '--param-file', f'{pkg_ctrl}/config/pantilt_controller.yaml'], output='both',
         )]),
         teleop_launch,
     ]

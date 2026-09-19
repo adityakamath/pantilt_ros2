@@ -48,7 +48,7 @@
        <limit> elements on the revolute joints.
        pantilt_max_velocity_rads duplicates pantilt_joints' own local computation
        (pantilt.joints.xacro) - only used by module.xacro's gazebo-mode <limit velocity>,
-       real mode keeps velocity="1e6" (see module.xacro's comment on why) regardless. -->
+       real and mujoco modes keep velocity="1e6" (see module.xacro's comment on why) regardless. -->
   <!-- This project runs the 12V STS3215 variant: 30 kgf*cm stall torque per Feetech's
        datasheet for that voltage option (not the 7.4V/19.5 kgf*cm variant used by stock
        SO-ARM100/101). -->

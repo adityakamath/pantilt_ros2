@@ -63,3 +63,9 @@ def test_control_launch_passes_the_servo_profile_to_the_urdf():
     for key in ('internal_max_vel', 'internal_max_acc', 'internal_acc_coeff'):
         assert f"{key}:={{_cfg[\"{key}\"]}}" in source, key
 
+
+def test_sim_launch_slices_the_simulated_depth_into_oak_scan_like_the_real_bringup():
+    source = (REPOSITORY / 'pt_control/launch/pantilt.launch.py').read_text()
+    assert "executable='depthimage_to_laserscan_node'" in source
+    assert "('depth', '/oak/stereo/image_raw')" in source and "('scan', '/oak/scan')" in source
+    assert (REPOSITORY / 'pt_mujoco/config/mujoco_depth_to_scan.yaml').is_file()

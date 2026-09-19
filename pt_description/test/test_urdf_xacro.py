@@ -123,3 +123,14 @@ def test_internal_tuning_defaults_are_the_slow_smooth_ones(pantilt_config):
         params = {p.get('name'): p.text.strip() for p in joint.findall('param')}
         assert (params['internal_max_vel'], params['internal_max_acc'], params['internal_acc_coeff']) == \
             ('65', '50', '0'), joint.get('name')
+
+
+@pytest.mark.parametrize('pantilt_config', _CONFIGS)
+@pytest.mark.parametrize('hardware_type,unlimited', [('real', True), ('mujoco', True), ('gazebo', False)])
+def test_velocity_limit_is_unlimited_except_where_the_simulator_enforces_it(pantilt_config, hardware_type, unlimited):
+    """joy_teleop's absolute jumps must not be rate-limited on real hardware or in MuJoCo."""
+    root = _process_urdf(pantilt_config, ros2_control_hardware_type=hardware_type)
+    for name in _MOVABLE_JOINTS:
+        velocity = float(root.find(f"joint[@name='{name}']/limit").get('velocity'))
+        assert (velocity >= 1e6) == unlimited, (hardware_type, name, velocity)
+

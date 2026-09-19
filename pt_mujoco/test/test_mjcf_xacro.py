@@ -61,3 +61,11 @@ def test_variants_use_their_own_body_meshes():
     names = {config: {Path(mesh.get('file')).name for mesh in process(config).findall('asset/mesh')} for config in CONFIGS}
     assert 'pantilt_base_100.stl' in names['pt100'] and 'pantilt_base_101.stl' in names['pt101']
     assert 'pantilt_base_101.stl' not in names['pt100']
+
+
+def test_depth_to_scan_config_matches_the_real_bringup_apart_from_the_frame():
+    import yaml
+    sim = yaml.safe_load((ROOT / 'config/mujoco_depth_to_scan.yaml').read_text())['/depth_to_scan']['ros__parameters']
+    real = yaml.safe_load((ROOT.parent / 'pt_bringup/config/depthimage_to_laserscan.yaml').read_text())['/depth_to_scan']['ros__parameters']
+    assert {k: v for k, v in sim.items() if k != 'output_frame'} == {k: v for k, v in real.items() if k != 'output_frame'}
+    assert sim['output_frame'] == 'oak_link'

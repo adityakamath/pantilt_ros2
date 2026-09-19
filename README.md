@@ -62,6 +62,7 @@ A host embedding this mechanism on a shared bus (e.g. `lekiwi_ros2`) can still o
 - **[cloudini](https://github.com/facontidavide/cloudini)** — high-performance point cloud compression library; required by `pt_bringup` for the PCL compressor node (point cloud mode only)
 - **[joy_teleop](https://index.ros.org/p/joy_teleop/)** — joystick-to-topic bridge (included in this package's launch)
 - **[mujoco_ros2_control](https://github.com/ros-controls/mujoco_ros2_control)** / **mujoco_ros2_control_plugins** — `sim:=true` only (see [Simulation](#simulation)); `sudo apt install ros-kilted-mujoco-ros2-control ros-kilted-mujoco-ros2-control-plugins ros-kilted-image-transport-plugins` (0.1.2 or newer)
+- **estop_mujoco_plugin** (e.g. from [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2)'s `modules/`) — `sim:=true` only: serves `/emergency_stop` in the simulation like the real hardware interface
 - **[mujoco](https://pypi.org/project/mujoco/)** (pip, 3.13.0) — used by [`pt_mujoco`](pt_mujoco/README.md) to generate the simulation model and for its standalone viewer; `pip install -r pt_mujoco/requirements.txt`
 
 > **⚠️ Joystick:** `joy_teleop` is included but the [`joy`](https://github.com/ros-drivers/joystick_drivers) node is **not** — it must be started separately (on the same or a networked device) before the system will respond to controller input:
@@ -182,7 +183,7 @@ Runs the pan-tilt in MuJoCo instead of real hardware — same controllers, same 
 | `mujoco_model`     | `pt_control`                  | `""`    | [`sim` only] Path to a pre-built MJCF file; empty means generate one with `pt_mujoco` at launch time (so `pantilt_config` alone picks the pt100/pt101 model) |
 | `mujoco_headless`  | `pt_control`                  | `false` | [`sim` only] Run without the MuJoCo Simulate viewer window (set automatically from `mujoco_gui` when launched via `pt_bringup`) |
 
-> **Note:** All hardware parameters (serial port, baud rate, motor IDs, center steps, joint limits, etc.) are configured in [`pt_control/config/urdf_config.yaml`](pt_control/config/urdf_config.yaml). `sts_serial_port` and `use_mock` can be overridden at launch time; all other parameters must be changed in the yaml file directly.
+> **Note:** The connection settings (serial port, baud rate, sync write, motor speed ceiling) and the servo profile (`internal_max_vel`, `internal_max_acc`, `internal_acc_coeff`, default 65/50/0) are in [`pt_control/config/urdf_config.yaml`](pt_control/config/urdf_config.yaml). `sts_serial_port` and `use_mock` can be overridden at launch time; the rest are changed in the yaml file. Motor IDs, step centring and joint limits are physical constants of the mechanism, baked into `pantilt.joints.xacro`'s macro defaults.
 
 ## Package Structure
 
@@ -212,8 +213,9 @@ pantilt_ros2/
 │
 ├── pt_control/                 # Controllers, config, and launch files
 │   ├── config/
-│   │   ├── urdf_config.yaml       # Hardware parameters (serial port, motor IDs, center steps, joint limits)
-│   │   ├── pantilt_config.yaml    # Controller manager, spawner types, joint limits
+│   │   ├── urdf_config.yaml       # Serial port, baud rate, sync write, motor speed ceiling, servo profile (internal_*)
+│   │   ├── pantilt_config.yaml    # Controller manager and joint state broadcaster (standalone launch)
+│   │   ├── pantilt_controller.yaml  # The position controller: type, joints, interface (loaded by the spawner; hosts reuse it)
 │   │   └── teleop_config.yaml     # joy_teleop axis/button mapping
 │   ├── launch/
 │   │   ├── pantilt.launch.py      # Control stack (RSP, controller_manager, spawners, teleop); sim extras
@@ -249,7 +251,7 @@ The URDF is split across several xacro files with distinct responsibilities:
 | `oakd_s2.module.xacro`   | OAK-D S2 camera and IMU links as a reusable macro (`oakd_s2_camera`)          |
 | `pantilt.urdf.xacro`     | Standalone robot: creates `base_footprint`, instantiates the macro            |
 
-Both pan and tilt joints use `velocity="1e6"` in their URDF `<limit>` elements. See [Design](#design) for the reason.
+Both pan and tilt joints use `velocity="1e6"` in their URDF `<limit>` elements (real and MuJoCo modes). See [Design](#design) for the reason.
 
 The MuJoCo model is built from this URDF by [`pt_mujoco`](pt_mujoco/README.md) (see [Simulation](#simulation)); this package no longer holds any MJCF.
 
@@ -274,9 +276,9 @@ Generates the MuJoCo model of the pan-tilt (frames, inertias and limits synced f
 
 Starts whichever control-node process matches `ros2_control_hardware_type`: the standard `controller_manager`/`ros2_control_node` for `real`, or `mujoco_ros2_control`'s own `ros2_control_node` for `mujoco` (it hosts the MuJoCo simulation itself, so this package owns that dependency). In `mujoco` mode it generates the model with `pt_mujoco`, loads the camera plugin config, and adds a compressed-image republisher and the camera optical-frame TF.
 
-Hardware parameters are read from [`config/urdf_config.yaml`](pt_control/config/urdf_config.yaml) at launch time. `sts_serial_port` and `use_mock` can be overridden on the command line (empty string = use yaml value); all other parameters (motor IDs, center steps, joint limits, etc.) must be edited in the yaml directly.
+Connection settings and the servo profile are read from [`config/urdf_config.yaml`](pt_control/config/urdf_config.yaml) at launch time. `sts_serial_port` and `use_mock` can be overridden on the command line (empty string = use yaml value); the other values are edited in the yaml directly. The servo profile (`internal_*`, written to each servo's EEPROM at start-up) is the slow, smooth 65/50/0 by default; change it there to experiment.
 
-The `pantilt_controller` uses a [`ForwardCommandController`](https://control.ros.org/kilted/doc/ros2_controllers/forward_command_controller/doc/userdoc.html) on the `position` interface. Each cycle it forwards the commanded position directly to the hardware interface, which translates it to motor steps. Velocity profiling is handled by the STS3215 motor firmware, not in software. The controller manager runs at **50 Hz** (set in `pantilt_config.yaml`).
+The `pantilt_controller` uses a [`ForwardCommandController`](https://control.ros.org/kilted/doc/ros2_controllers/forward_command_controller/doc/userdoc.html) on the `position` interface. Each cycle it forwards the commanded position directly to the hardware interface, which translates it to motor steps. Velocity profiling is handled by the STS3215 motor firmware, not in software. The controller manager runs at **50 Hz** (set in `pantilt_config.yaml`). The controller's own parameters are in `pantilt_controller.yaml`, which the launch file hands to the spawner (`--param-file`); joint limits come from the URDF.
 
 The [`JointStateBroadcaster`](https://control.ros.org/kilted/doc/ros2_controllers/joint_state_broadcaster/doc/userdoc.html) publishes standard joint states plus extended per-joint diagnostics (voltage, temperature, current, moving flag) to `/dynamic_joint_states`.
 
@@ -413,13 +415,13 @@ controller_manager:
 
 The xacro embedding above only covers the URDF/`ros2_control` description. `pt_control/launch/pantilt.launch.py` + `pt_bringup/launch/pantilt.launch.py` are the **dedicated-bus** bring-up (standalone `controller_manager`, own serial port) and aren't included by a shared-bus host, since a shared bus needs one `controller_manager` merging the host's own controllers with `pantilt_controller` - not two.
 
-[lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2) is the reference shared-bus integration: its `lekiwi_control/launch/control.launch.py` re-implements the same xacro-merge → `controller_manager` → spawner sequence `pt_control/launch/pantilt.launch.py` shows for a dedicated bus, natively, rather than including it. Any other shared-bus host will need to do the same. What *is* shared automatically is the joint/limit xacro (`pantilt.joints.xacro`, single source); `urdf_config.yaml` motor IDs and joint limits are **not** - lekiwi_ros2 keeps its own copy under `lekiwi_control/config/payloads/pantilt/urdf_config.yaml`, so re-check it against this package's own `pt_control/config/urdf_config.yaml` after any motor recalibration. `pt_bringup/launch/oakd.launch.py` (the camera) has no bus coupling and is included directly by both bring-up paths. For simulation, a host builds the payload with `pt_mujoco.build_mujoco_models.build_payload_spec` from its own URDF and attaches it at its mount frame (see [`pt_mujoco/README.md`](pt_mujoco/README.md)), which keeps the pan-tilt's model in this repository and the mount in the host.
+[lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2) is the reference shared-bus integration: its `lekiwi_control/launch/control.launch.py` re-implements the same xacro-merge → `controller_manager` → spawner sequence `pt_control/launch/pantilt.launch.py` shows for a dedicated bus, natively, rather than including it. Any other shared-bus host will need to do the same. What *is* shared automatically is the joint/limit xacro (`pantilt.joints.xacro`, single source, including the default servo profile), the controller definition (`pt_control/config/pantilt_controller.yaml`, which the host passes to its own spawner with `--param-file` instead of merging it into its controller manager parameters) and the servo profile values in `pt_control/config/urdf_config.yaml`, which lekiwi_ros2 reads too. The serial port and other bus-level settings stay with the host, since one hardware plugin owns the bus. `pt_bringup/launch/oakd.launch.py` (the camera) has no bus coupling and is included directly by both bring-up paths. For simulation, a host builds the payload with `pt_mujoco.build_mujoco_models.build_payload_spec` from its own URDF and attaches it at its mount frame (see [`pt_mujoco/README.md`](pt_mujoco/README.md)), which keeps the pan-tilt's model in this repository and the mount in the host.
 
 ## Design
 
 The URDF is split into `common` (geometry), `control` (ros2_control + motor parameters), `joints` (embeddable joint declarations), and `module` (links and joints) so the pan-tilt can be embedded into a host robot either with its own hardware block or as joints added to a shared bus - see [Embedding as a Module](#embedding-as-a-module) above. `pantilt.urdf.xacro` is a thin standalone wrapper around the `pantilt_module` macro.
 
-`ForwardCommandController` sends raw position targets directly to the hardware; the STS3215 firmware handles velocity profiling, not software. Both joints use `velocity="1e6"` in real mode (physically unreachable, so it never clips) since `joy_teleop`'s absolute position commands can jump enough in one cycle to otherwise trip spurious `ros2_control` limit errors. Position limits (±π/2) remain enforced; the real speed ceiling comes from `max_velocity` (85% of the STS3215 hardware max).
+`ForwardCommandController` sends raw position targets directly to the hardware; the STS3215 firmware handles velocity profiling, not software. Both joints use `velocity="1e6"` in real and MuJoCo modes (physically unreachable, so it never clips) since `joy_teleop`'s absolute position commands can jump enough in one cycle to otherwise trip spurious `ros2_control` limit errors. Position limits (±π/2) remain enforced; the real speed ceiling comes from `max_velocity` (85% of the STS3215 hardware max).
 
 ## Simulation
 

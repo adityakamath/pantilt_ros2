@@ -12,7 +12,11 @@
          actually applies - bam.to_mujoco's static export omits it, a known gap in that
          deprecated tool). kp/error_gain/max_pwm=32/0.166/0.97 are STS3215Actuator's firmware
          constants (fixed across supply voltages); vin=12 for this identified variant. -->
-    <joint damping="1.057835" frictionloss="0.195871" armature="0.032460"/>
+    <!-- solreflimit/solimplimit: stiff end stops. With MuJoCo's default soft limit a full-speed jump to
+         a limit penetrates it by ~0.01 rad, and ros2_control's limiter treats a measured position
+         beyond the URDF limit as a hardware fault and deactivates the controller. -->
+    <joint damping="1.057835" frictionloss="0.195871" armature="0.032460"
+           solreflimit="0.004 1" solimplimit="0.99 0.999 0.001 0.5 2"/>
     <position kp="42.911886" kv="0.0" forcerange="-8.537717 8.537717"/>
     <!-- so_arm_mujoco's copy also nests visual/collision geom sub-classes for its own STS3215
          motor meshes; omitted here since pantilt_shared.xml defines its own same-named ones. -->

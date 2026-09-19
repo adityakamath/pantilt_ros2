@@ -166,10 +166,11 @@
       </geometry>
     </collision>
   </link>
-  <!-- real mode: velocity="1e6" (unreachable) disables JointSaturationLimiter's clipping,
-         since joy_teleop's absolute position jumps would otherwise trip spurious limit
-         errors. gazebo mode: uses the real computed ceiling instead, since GazeboSimSystem
-         actually enforces this limit on the simulated joint. -->
+  <!-- real and mujoco modes: velocity="1e6" (unreachable) disables JointSaturationLimiter's
+         clipping, since joy_teleop's absolute position jumps would otherwise trip spurious limit
+         errors (MuJoCo does not need the limit: its servo model already bounds the motion).
+         gazebo mode: uses the real computed ceiling instead, since GazeboSimSystem actually
+         enforces this limit on the simulated joint. -->
   <!-- Shoulder-pan joint (revolute; was "pan_joint") -->
   <joint name="shoulder_pan_joint" type="revolute">
     <parent link="pantilt_base_link"/>

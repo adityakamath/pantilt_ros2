@@ -1,0 +1,11 @@
+# The pan-tilt position controller. Loaded by the spawner (`spawner pantilt_controller --param-file
+# <this file>`), which also reads `type` from here, so any launch file - this package's own, or a
+# host robot sharing the serial bus like lekiwi_ros2 - gets the controller without merging anything
+# into its controller_manager parameters. Position limits come from the URDF <limit> elements.
+pantilt_controller:
+  ros__parameters:
+    type: forward_command_controller/ForwardCommandController
+    joints:
+      - shoulder_pan_joint
+      - tilt_joint
+    interface_name: position
