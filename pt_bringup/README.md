@@ -75,4 +75,4 @@ The camera needs USB 3.0 and, on a Raspberry Pi 5, a raised USB current limit (s
 
 ## Building
 
-This package builds a C++ node that needs [cloudini](https://github.com/facontidavide/cloudini) and `point_cloud_interfaces`, which are not plain apt packages, and it needs `depthai-ros` at runtime. Clone cloudini into the workspace as described in the [repository README](../README.md#installation). It has no tests of its own; CI builds only `pt_description` and `pt_control` for this reason.
+This package builds a C++ node that needs [cloudini](https://github.com/facontidavide/cloudini) and `point_cloud_interfaces`, which are not plain apt packages, and it needs `depthai-ros` at runtime. Clone cloudini into the workspace as described in the [repository README](../README.md#installation). It has no tests of its own, and CI does not build it for this reason.
