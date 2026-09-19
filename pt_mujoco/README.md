@@ -13,7 +13,7 @@ MuJoCo models of the pan-tilt payload (`pt100`, `pt101`) with its OAK-D S2 camer
 - ROS sim only (Kilted): `sudo apt install ros-kilted-mujoco-ros2-control
   ros-kilted-mujoco-ros2-control-plugins ros-kilted-image-transport-plugins` (0.1.2 or newer; older
   releases have no camera plugin).
-- `estop_mujoco_plugin` (in the same workspace, e.g. from lekiwi_ros2's `modules/`): serves `/emergency_stop` in the
+- `mujoco_ros2_plugins` (in the same workspace, e.g. from lekiwi_ros2's `modules/`): serves `/emergency_stop` in the
   simulation. The plugin config loads it, and a missing plugin class is fatal at launch.
 
 ## Standalone use
@@ -67,7 +67,7 @@ std_msgs/msg/Float64MultiArray "{data: [0.5, -0.3]}"` (pan, tilt in radians) or 
 | `/oak/rgb/image_raw`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` | `CameraPlugin`, headless EGL; frame `oak_rgb_camera_optical_frame` (static TF from `oak_link`); the image is upside down like the real, inverted OAK-D mount |
 | `/oak/scan` | `depthimage_to_laserscan` on the simulated depth image (`config/mujoco_depth_to_scan.yaml`), as the real bringup does |
 | `/oak/rgb/image_raw/compressed` | `image_transport` republisher of the raw image |
-| `/emergency_stop` (`std_srvs/SetBool`) | `estop_mujoco_plugin`: while enabled the pan-tilt holds its position and ignores commands, as on the real robot; releasing hands control back |
+| `/emergency_stop` (`std_srvs/SetBool`) | `mujoco_ros2_plugins`: while enabled the pan-tilt holds its position and ignores commands, as on the real robot; releasing hands control back |
 
 The camera is configured for the real pipeline's 30 Hz; headless software rendering on a Raspberry
 Pi 5 delivered about 19 Hz. The real-time factor was 1.0.

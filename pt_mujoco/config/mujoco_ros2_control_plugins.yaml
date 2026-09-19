@@ -20,4 +20,4 @@
           depth_topic: /oak/stereo/image_raw
       # /emergency_stop in the simulation, as sts_hardware_interface provides on the real pan-tilt.
       emergency_stop_plugin:
-        type: "estop_mujoco_plugin/EmergencyStopPlugin"
+        type: "mujoco_ros2_plugins/EmergencyStopPlugin"
