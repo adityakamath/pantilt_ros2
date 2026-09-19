@@ -1,20 +1,9 @@
 <?xml version="1.0"?>
-<!-- STS3215 MuJoCo joint defaults, used by the pan and tilt joints and actuators. Copied verbatim
-     from so_arm_ros2/so_arm_mujoco/mjcf/sts3215.mjcf.xacro (lekiwi_mujoco keeps its own copy for its
-     wheels, under the class name sts3215, so this one is named pt_sts3215: default class names are global
-     and would collide when the payload is attached to it) - the BAM identification is a property of the motor, not the mechanism it drives. -->
+<!-- STS3215 joint defaults for pan/tilt; class is pt_sts3215 because default class names are global and lekiwi_mujoco has sts3215 -->
 <mujoco xmlns:xacro="http://www.ros.org/wiki/xacro">
   <default class="pt_sts3215">
-    <!-- Identified from real STS3215 (12V) trajectories via Rhoban's BAM project
-         (github.com/Rhoban/bam), model "m1", params/feetech_sts3215_12V/m1.json (PR #5).
-         Derived with bam.to_mujoco's own voltage_controlled_to_mujoco formula, corrected to
-         fold in error_gain_ratio (the per-unit gain correction STS3215Actuator.compute_control
-         actually applies - bam.to_mujoco's static export omits it, a known gap in that
-         deprecated tool). kp/error_gain/max_pwm=32/0.166/0.97 are STS3215Actuator's firmware
-         constants (fixed across supply voltages); vin=12 for this identified variant. -->
-    <!-- solreflimit/solimplimit: stiff end stops. With MuJoCo's default soft limit a full-speed jump to
-         a limit penetrates it by ~0.01 rad, and ros2_control's limiter treats a measured position
-         beyond the URDF limit as a hardware fault and deactivates the controller. -->
+    <!-- BAM-identified from a real STS3215 (12V), model m1 (github.com/Rhoban/bam), with error_gain_ratio folded in -->
+    <!-- Stiff end stops: a soft limit lets a full-speed jump pass the URDF limit and deactivates the controller -->
     <joint damping="1.057835" frictionloss="0.195871" armature="0.032460"
            solreflimit="0.004 1" solimplimit="0.99 0.999 0.001 0.5 2"/>
     <position kp="42.911886" kv="0.0" forcerange="-8.537717 8.537717"/>

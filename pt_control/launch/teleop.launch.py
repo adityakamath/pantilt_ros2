@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""
-Launch joy_teleop for Pan Tilt 100 joystick control.
-
-Subscribes to /joy and publishes Float64MultiArray position commands to /pantilt_controller/commands.
-"""
+"""Launch joy_teleop: /joy to position commands on /pantilt_controller/commands."""
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument

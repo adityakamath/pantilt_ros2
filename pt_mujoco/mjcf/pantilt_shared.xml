@@ -1,11 +1,4 @@
-<!--
-  Variant-independent MJCF content for the PT100/PT101 pan-tilt: compiler options, shared
-  meshes/materials, default classes (servo dynamics come from sts3215.mjcf.xacro), actuators. Mirrors pantilt.common.xacro/control.xacro/
-  module.xacro. Mesh paths are $(find pt_description)-absolute, not meshdir-relative -
-  MuJoCo resolves meshdir against the top-level model file's directory (a launch-time temp
-  file, not this one), so a relative path would silently break. Only ever spliced in via
-  pantilt.mjcf.xacro's xacro:include, never loaded directly.
--->
+<!-- Variant-independent PT100/PT101 MJCF: compiler options, meshes, defaults, actuators; mesh paths are absolute because meshdir resolves against the top-level file -->
 <mujoco model="pantilt_shared" xmlns:xacro="http://www.ros.org/wiki/xacro">
   <compiler angle="radian"/>
   <asset>

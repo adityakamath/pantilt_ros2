@@ -6,12 +6,7 @@
   <xacro:property name="charcoal_rgba" value="0.15 0.15 0.15 1.0"/>
   <xacro:property name="charcoal_rgb" value="0.15"/>
 
-  <!-- Pan-tilt mechanical configuration: selects pantilt_base / shoulder_pan mesh
-       variants. "pt101" (default, recommended) uses the SO-ARM101-based
-       meshes; "pt100" uses the original SO-ARM100-based meshes. All
-       link/joint origins, axes, and the mount to the host robot are shared
-       and unchanged across configs — pt101 is a drop-in mesh replacement
-       only. -->
+  <!-- Mesh variant: pt101 (default, recommended) or pt100; only the meshes differ, all origins and axes are shared -->
   <xacro:arg name="pantilt_config" default="pt101"/>
   <xacro:property name="pantilt_config" value="$(arg pantilt_config)"/>
 
@@ -24,13 +19,7 @@
 
   <xacro:property name="pantilt_base_mesh" value="pantilt_base_100.stl"/>
   <xacro:property name="shoulder_pan_mesh" value="pan_joint_100.stl"/>
-  <!-- Mesh-local origin correction, applied to the body mesh of each link
-       only (not the motor meshes), in place of the shared
-       pantilt_offset_rz / shoulder_offset_rx+rz rotations above. pt100 meshes
-       reuse those shared rotations with zero translation (no-op). pt101
-       meshes need a different rotation (SO-ARM101's base_link/shoulder_link
-       frames are not simply Z-rotated copies of SO-ARM100's) plus a
-       translation; see derivation below. -->
+  <!-- Mesh-local origin correction for the body meshes only; pt100 reuses the shared rotations, pt101 needs its own -->
   <xacro:property name="pantilt_base_mesh_rpy" value="0 0 ${pantilt_offset_rz}"/>
   <xacro:property name="shoulder_pan_mesh_rpy" value="${shoulder_offset_rx} 0 ${shoulder_offset_rz}"/>
   <xacro:property name="pantilt_base_mesh_xyz" value="0 0 0"/>
@@ -44,28 +33,17 @@
     <xacro:property name="shoulder_pan_mesh_xyz" value="-0.0120 0 -0.0463059"/>
   </xacro:if>
 
-  <!-- Shoulder-pan joint origin (in reoriented base_link frame). Z is offset +0.0483559 from
-       the raw SO100-derived value (0.0165) so shoulder_pan_joint's origin sits relative to
-       shoulder_link's own mesh the same way SO101's shoulder_pan_joint sits relative to
-       shoulder_link (mesh-bbox-vs-origin alignment verified against so101.urdf);
-       shoulder_pan_mesh_xyz and tilt_motor's mesh offset above/below carry the
-       equal-and-opposite compensation so no visual or downstream frame (tilt_joint,
-       tilt_link, oak_link) moves. -->
+  <!-- Shoulder-pan joint origin; z is offset from the SO100 value and compensated in the mesh and tilt offsets so no frame moves -->
   <xacro:property name="shoulder_pan_x" value="0.0452"/>
   <xacro:property name="shoulder_pan_z" value="0.0648559"/>
 
-  <!-- Joint limits - single source of truth for pantilt.module.xacro's URDF <limit> elements
-       (needed as globals here, not macro params, since pantilt.module.xacro always includes
-       this file directly - see pantilt.joints.xacro's own matching defaults, used separately
-       for its ros2_control <joint> blocks). -->
+  <!-- Joint limits for the URDF <limit> elements (pantilt.joints.xacro has matching defaults for ros2_control) -->
   <xacro:property name="shoulder_pan_lower" value="-1.5708"/>
   <xacro:property name="shoulder_pan_upper" value="1.5708"/>
   <xacro:property name="tilt_joint_lower" value="-1.5708"/>
   <xacro:property name="tilt_joint_upper" value="1.5708"/>
 
-  <!-- Tilt joint origin (in shoulder_link frame — same as SO100 shoulder_lift, minus the same
-       -0.0483559 compensation applied to shoulder_pan_z above, so shoulder_pan_z + tilt_joint_z
-       — and therefore tilt_link's world pose — is unchanged). -->
+  <!-- Tilt joint origin in shoulder_link; the z offset cancels the shoulder_pan_z compensation above -->
   <xacro:property name="tilt_joint_x" value="0.0306"/>
   <xacro:property name="tilt_joint_z" value="0.0541441"/>
 

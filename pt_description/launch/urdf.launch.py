@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""
-Pan Tilt 100 visualization launch file.
-
-Starts only robot_state_publisher for visualization or URDF manipulation - no hardware or
-controllers.
-"""
+"""Launch robot_state_publisher only, for visualization; no hardware or controllers."""
 
 from launch import LaunchDescription
 from launch.substitutions import Command, FindExecutable, PathJoinSubstitution

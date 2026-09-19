@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-"""
-Launch file to start the OAK-D S2 camera using depthai_ros_driver.
-"""
+"""Launch the OAK-D S2 camera with depthai_ros_driver."""
 
 import os
 

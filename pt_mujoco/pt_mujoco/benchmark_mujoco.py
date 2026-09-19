@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Measure pan and tilt step responses in the current models.
-
-Standalone, no install needed: `python3 -m pt_mujoco.benchmark_mujoco --output /tmp/out.json`,
-run from this package's root dir (-m puts the cwd on sys.path). After `pip install -e .`
-(or a colcon build), the same tool is also `benchmark_mujoco` on PATH / `ros2 run pt_mujoco
-benchmark_mujoco`.
-"""
+"""Measure pan and tilt step responses: python3 -m pt_mujoco.benchmark_mujoco --output out.json."""
 import argparse
 import json
 from pathlib import Path

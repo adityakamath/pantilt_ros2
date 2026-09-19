@@ -193,11 +193,7 @@ def resolve_assets(spec):
 
 
 def compose_scene(robot, scene='flat'):
-    """One payload in a separate scene. Native attachment owns references and assets.
-
-    The simulation profile owns global physics options; scenes own world geometry,
-    visual settings and lighting.
-    """
+    """One payload in a separate scene; the profile owns physics options, scenes own world geometry."""
     if scene is False or scene is None or scene == 'none':
         return robot
     if scene is True:

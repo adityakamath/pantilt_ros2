@@ -3,12 +3,20 @@
 <package format="3">
   <name>pt_description</name>
   <version>0.1.0</version>
-  <description>URDF, meshes, and robot description for the Pan Tilt 100 mechanism</description>
-  <maintainer email="adityakamath@live.com">adityakamath</maintainer>
+  <description>URDF, meshes and launch file for the Pan Tilt 100 mechanism (PT100 and PT101)</description>
+  <author email="adityakamath@live.com">Aditya Kamath</author>
+  <maintainer email="adityakamath@live.com">Aditya Kamath (Kamath Robotics)</maintainer>
   <license>Apache-2.0</license>
+
+  <url type="website">https://github.com/adityakamath/pantilt_ros2</url>
+  <url type="repository">https://github.com/adityakamath/pantilt_ros2</url>
+  <url type="bugtracker">https://github.com/adityakamath/pantilt_ros2/issues</url>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
   <exec_depend>robot_state_publisher</exec_depend>
   <exec_depend>xacro</exec_depend>
 
@@ -16,6 +24,7 @@
   <test_depend>ament_lint_common</test_depend>
   <test_depend>ament_cmake_pytest</test_depend>
   <test_depend>python3-pytest</test_depend>
+  <test_depend>python3-yaml</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

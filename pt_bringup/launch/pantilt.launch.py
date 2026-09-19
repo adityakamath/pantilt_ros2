@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""
-Main bringup launch file for the complete Pan Tilt 100 system: mechanism + camera.
-
-This launch file includes:
-    - pt_control's pantilt.launch.py (robot control stack)
-    - pt_bringup's oakd.launch.py (OAK-D camera) - real hardware only; sim:=true (MuJoCo)
-      skips it, mujoco_ros2_control's own ros2_control_node is self-contained
-It forwards relevant launch arguments to each included launch file.
-"""
+"""Full Pan Tilt 100 bringup: pt_control plus the OAK-D camera (real hardware only)."""
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
@@ -37,9 +29,7 @@ def launch_setup(context):
     use_sim_time = LaunchConfiguration("use_sim_time").perform(context)
 
     if sim:
-        # Running in sim implies sim time; keep any explicit use_mock override, otherwise
-        # force it so the STS plugin (unused in sim, but still resolved by xacro defaults)
-        # never assumes a real serial port is present.
+        # Sim implies sim time and mock hardware, so no serial port is assumed
         use_sim_time = "true"
         use_mock = use_mock or "true"
 
@@ -86,9 +76,7 @@ def launch_setup(context):
             }.items()
         )
         actions.append(oakd_launch)
-    # hw_type == "mujoco": nothing more to start - mujoco_ros2_control's own
-    # ros2_control_node (started by pt_control/launch/pantilt.launch.py above) hosts the
-    # MuJoCo simulation itself, no separate simulator process, bridge, or entity spawn needed.
+    # mujoco: nothing more to start, pt_control's ros2_control_node hosts the simulation
 
     return actions
 

@@ -1,29 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
-  <!--
-    pantilt_joints macro — ros2_control joint declarations for the PT100 pan-tilt.
-
-    Intended for embedding into a host robot's <ros2_control> block when the
-    PT100 shares the host's serial bus (and therefore its hardware interface).
-    For standalone use, pantilt.control.xacro wraps this in its own <ros2_control>
-    block with the STSHardwareInterface plugin.
-
-    Params:
-      shoulder_pan_motor_id — STS3215 motor ID for pan axis
-      tilt_motor_id         — STS3215 motor ID for tilt axis
-      shoulder_pan_center_steps — raw step value (0–4095) for pan centre position
-      tilt_center_steps     — raw step value (0–4095) for tilt centre position
-      sts3215_max_vel_steps — motor's max velocity in steps/s, model-dependent;
-                               written per joint as max_velocity_steps
-      internal_max_vel      — EEPROM VMax cap (addr 84), written per joint
-      internal_max_acc      — EEPROM AMax cap (addr 85), written per joint
-      internal_acc_coeff    — EEPROM KAcc coefficient (addr 86), written per joint
-      The internal_* defaults (65/50/0, near the STS3215 firmware's own ~68/~50/1) give the slow,
-      smooth motion this mechanism is meant to have. They are the module's own tuning, not a
-      per-host setting: the wheels' 254/254/100 makes the pan-tilt accelerate fast enough to draw
-      the current that crashed the Pi. A host may still pass different values to this macro.
-  -->
+  <!-- pantilt_joints: ros2_control joints for a host's shared-bus block; defaults are the mechanism's calibration and the slow 65/50/0 servo profile -->
   <xacro:macro name="pantilt_joints" params="
       shoulder_pan_motor_id:=1
       tilt_motor_id:=2
@@ -60,9 +38,7 @@
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
-      <!-- Real-hardware-only telemetry: neither gz_ros2_control/GazeboSimSystem nor
-           mujoco_ros2_control/MujocoSystemInterface know position/velocity/effort-only
-           joints, and simulated joints have no real telemetry for these. -->
+      <!-- Real hardware only: sim joints have no such telemetry -->
       <xacro:if value="${ros2_control_hardware_type == 'real'}">
         <state_interface name="voltage"/>
         <state_interface name="temperature"/>
@@ -88,9 +64,7 @@
       <state_interface name="position"/>
       <state_interface name="velocity"/>
       <state_interface name="effort"/>
-      <!-- Real-hardware-only telemetry: neither gz_ros2_control/GazeboSimSystem nor
-           mujoco_ros2_control/MujocoSystemInterface know position/velocity/effort-only
-           joints, and simulated joints have no real telemetry for these. -->
+      <!-- Real hardware only: sim joints have no such telemetry -->
       <xacro:if value="${ros2_control_hardware_type == 'real'}">
         <state_interface name="voltage"/>
         <state_interface name="temperature"/>

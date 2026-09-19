@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""
-Smoke tests for pt_description's URDF xacro files (the MJCF lives in pt_mujoco).
-
-Pure xacro-processing + XML-structure checks: no ROS graph, no rclpy, no nodes. Runs `xacro`
-as a subprocess and inspects its output - mirrors so_arm_description's test_urdf_xacro.py in
-so_arm_ros2 (the two robots share the same first two joints, so their test structure should
-too).
-"""
+"""Smoke tests for the URDF xacro files: runs xacro as a subprocess, no ROS graph."""
 
 import os
 import subprocess

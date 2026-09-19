@@ -23,9 +23,7 @@ jobs:
 
   build:
     name: colcon build (ros:kilted)
-    # Verifies the packages build, pt_description's xacro processes cleanly, and runs the
-    # pytest suites (URDF, MuJoCo models, launch arguments) - not a substitute for testing on a
-    # robot, but it catches broken XML/CMakeLists/xacro syntax and model drift before it reaches one.
+    # Builds the packages and runs the pytest suites (URDF, MuJoCo models, launch arguments)
     runs-on: ubuntu-latest
     container: ros:kilted
     timeout-minutes: 10
@@ -47,10 +45,7 @@ jobs:
             ros-kilted-xacro
 
       - name: colcon build
-        # pt_bringup is excluded: it needs cloudini, point_cloud_interfaces, and
-        # depthai-ros, none of which are plain apt packages - same reason lekiwi_ros2's
-        # CI excludes it. pt_description and pt_control have no such dependency and build
-        # standalone.
+        # pt_bringup is excluded: cloudini, point_cloud_interfaces and depthai-ros are not plain apt packages
         run: |
           . /opt/ros/kilted/setup.sh
           colcon build --packages-select pt_description pt_mujoco pt_control

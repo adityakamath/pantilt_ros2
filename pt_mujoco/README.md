@@ -103,4 +103,4 @@ Only the servo profile is measured (a real STS3215 at 12 V). Inertias, the torqu
 pytest pt_mujoco/test -q       # about 15 seconds
 ```
 
-`test_without_ros.py` runs the tools with ROS imports blocked and is skipped unless `mujoco` and `xacro` are pip-installed. The launch arguments are covered by `pt_control/test/test_launch.py`.
+The launch arguments are covered by `pt_control/test/test_launch.py`.

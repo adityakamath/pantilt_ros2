@@ -1,8 +1,5 @@
 <?xml version="1.0"?>
-<!-- Parametric PT100/PT101 MJCF library (mujoco_ros2_control equivalent of pantilt.module.xacro):
-     defines the pantilt_body macro, selected by pantilt_config. pt.mjcf.xacro fixes it to the
-     world for standalone use; scenes come from mjcf/scenes and are composed by
-     build_mujoco_models.py, which also syncs the numbers below from the URDF. -->
+<!-- Parametric PT100/PT101 MJCF (pantilt_body macro, selected by pantilt_config); build_mujoco_models.py syncs the numbers from the URDF -->
 <mujoco xmlns:xacro="http://www.ros.org/wiki/xacro" model="pantilt">
   <xacro:arg name="pantilt_config" default="pt101"/>
   <xacro:property name="pantilt_config" value="$(arg pantilt_config)"/>
@@ -11,22 +8,14 @@
        which only xacro resolves. -->
   <xacro:include filename="$(find pt_mujoco)/mjcf/pantilt_shared.xml"/>
 
-  <!-- Mesh files and mesh-local offset corrections - pt100 defaults below, overridden for
-       pt101. Not $(find)-included from pantilt.common.xacro's equivalent properties: URDF's
-       rpy composes as Rz*Ry*Rx (fixed-axis roll,pitch,yaw) while MuJoCo's default euler="xyz"
-       composes as Rx*Ry*Rz - the reverse order. These only agree when rpy has a single nonzero
-       axis; every offset below has 2+ nonzero axes, so each is given as a quat computed
-       directly from the URDF's rpy (via its own Rz*Ry*Rx convention), not a ported euler. -->
+  <!-- Mesh files and offset corrections (pt100 defaults, overridden for pt101), as quats since URDF rpy order differs from MuJoCo euler -->
   <xacro:property name="pantilt_base_mesh" value="pantilt_base_100.stl"/>
   <xacro:property name="shoulder_link_mesh_file" value="pan_joint_100.stl"/>
   <xacro:property name="pantilt_base_geom_pos" value="0 0 0"/>
   <!-- pt100's pantilt_base_100.stl URDF origin is rpy="0 0 pi/2" (single Z axis, unlike
        pt101's) - quat is Rz(90) alone, not pt101's override value below. -->
   <xacro:property name="pantilt_base_geom_quat" value="0.70710678 0 0 0.70710678"/>
-  <!-- shoulder_link_geom_pos Z carries the same -0.0483559 reslice compensation as
-       pantilt.common.xacro's shoulder_pan_mesh_xyz (URDF side) - see that file's comment
-       for the derivation. Applies to both configs; only X differs (pt101's bracket mesh
-       has a nonzero local X offset, pt100's doesn't). -->
+  <!-- shoulder_link_geom_pos Z carries the same reslice compensation as pantilt.common.xacro; only X differs between configs -->
   <xacro:property name="shoulder_link_geom_pos" value="0 0 -0.0483559"/>
   <xacro:property name="shoulder_link_geom_quat" value="0.5 0.5 0.5 0.5"/>
   <xacro:if value="${pantilt_config == 'pt101'}">
@@ -43,26 +32,19 @@
     <mesh name="shoulder_link_mesh" file="$(find pt_description)/meshes/${shoulder_link_mesh_file}"/>
   </asset>
 
-  <!-- pantilt_base_link has no pos/euler of its own - it inherits the invocation site's
-       frame. Collision geoms cover only the primary body mesh, not the decorative "_motor"
-       sub-meshes. -->
+  <!-- pantilt_base_link inherits the invocation frame; collision geoms cover the main body mesh only -->
   <xacro:macro name="pantilt_body">
     <body name="pantilt_base_link">
       <inertial pos="0 0 0" mass="1.0" diaginertia="0.01 0.01 0.01"/>
       <geom mesh="pantilt_base_link_mesh" material="light_grey" class="visual"
             pos="${pantilt_base_geom_pos}" quat="${pantilt_base_geom_quat}"/>
-      <!-- quat, not euler: MuJoCo auto-aligns every mesh geom to its own principal-inertia
-           frame at compile time and composes that correction differently (and wrongly) with
-           an explicit euler= than with an explicit quat= - verified empirically per-mesh,
-           same class of bug as lekiwi_description's ld06_lidar fix. -->
+      <!-- quat, not euler: MuJoCo composes euler wrongly with a mesh's auto-aligned inertia frame -->
       <geom mesh="pan_motor" material="charcoal" class="visual"
             pos="0 0 0" quat="0.70710678 0 0 0.70710678"/>
       <geom mesh="pantilt_base_link_mesh" class="collision"
             pos="${pantilt_base_geom_pos}" quat="${pantilt_base_geom_quat}"/>
 
-      <!-- pos Z = 0.0648559 (was 0.0165): same reslice as pantilt.common.xacro's
-           shoulder_pan_z (URDF side) - the joint origin moved along its own rotation axis,
-           compensated by the mesh offsets above/below so nothing renders differently. -->
+      <!-- pos Z 0.0648559: same reslice as pantilt.common.xacro, compensated by the mesh offsets -->
       <body name="shoulder_link" pos="0.0452 0 0.0648559">
         <inertial pos="-9.07886e-05 0.0590972 -0.0172669" mass="0.119226"
                   diaginertia="5.94278e-05 5.89975e-05 3.13712e-05"/>

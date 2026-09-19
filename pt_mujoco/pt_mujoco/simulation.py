@@ -90,12 +90,7 @@ class PayloadControl:
 
 
 class Simulation:
-    """One model/data owner. No wall-clock pacing, rendering, keyboard or ROS imports.
-
-    step(count, action) holds a normalized [pan, tilt] rate action for count physics ticks.
-    step(count) accepts actuator edits in data.ctrl (e.g. viewer sliders); position
-    requests persist until reached or replaced, with slew limits at each tick.
-    """
+    """Model/data owner (no rendering or ROS); step(count, action) holds a normalized [pan, tilt] rate, step(count) uses data.ctrl."""
     def __init__(self, model):
         self.model = model
         self.data = mujoco.MjData(model)

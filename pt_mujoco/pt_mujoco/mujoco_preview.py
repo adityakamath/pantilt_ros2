@@ -1,13 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect an existing pan-tilt MJCF in MuJoCo's passive native viewer.
-
-On macOS run with mjpython. No ROS controller is included.
-
-Standalone, no install needed: `python3 -m pt_mujoco.mujoco_preview --variant pt101`,
-run from this package's root dir (-m puts the cwd on sys.path). After `pip install -e .`
-(or a colcon build), the same tool is also `mujoco_preview` on PATH / `ros2 run pt_mujoco
-mujoco_preview`.
-"""
+"""Inspect a pan-tilt MJCF in the passive native viewer (mjpython on macOS): python3 -m pt_mujoco.mujoco_preview --variant pt101."""
 import argparse
 from pathlib import Path
 from queue import SimpleQueue
@@ -39,11 +31,7 @@ class KeyboardControl:
 
 
 class HeldKeys:
-    """Attach GLFW press/release callbacks on the viewer's own UI thread.
-
-    The passive callback bootstraps access to its window on the first key press.
-    Unbound keys and focus notifications are forwarded to MuJoCo's callbacks.
-    """
+    """Attach GLFW key callbacks on the viewer's UI thread; other events go to MuJoCo's callbacks."""
     BOUND = {glfw.KEY_UP, glfw.KEY_DOWN, glfw.KEY_LEFT, glfw.KEY_RIGHT, *map(ord, 'XP')}
 
     def __init__(self):

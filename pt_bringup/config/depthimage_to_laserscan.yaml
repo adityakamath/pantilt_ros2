@@ -1,6 +1,4 @@
-# depthimage_to_laserscan: slices a row-band from the OAK-D depth image into a 2D LaserScan.
-# Runs in both pointcloud:=true and pointcloud:=false modes — it only needs the depth Image +
-# CameraInfo that the driver always publishes, no point cloud required.
+# Slices a row-band of the OAK-D depth image into a LaserScan; runs in both pointcloud modes
 /depth_to_scan:
   ros__parameters:
     scan_height: 1        # rows sampled, centered vertically; widen if signal is noisy

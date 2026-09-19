@@ -1,22 +1,5 @@
 #!/usr/bin/env python3
-"""
-Pan Tilt 100 ROS 2 control stack launch file.
-
-This launch file starts:
-    - robot_state_publisher
-    - controller_manager (ros2_control) - real mode uses the standard controller_manager
-      node; mujoco mode uses a modified ros2_control_node from the mujoco_ros2_control
-      package itself, which also hosts the MuJoCo simulation in-process
-    - joint_state_broadcaster
-    - pantilt_controller
-    - (optionally) motor diagnostics
-    - joystick teleop
-Hardware parameters are read from urdf_config.yaml; sts_serial_port and
-use_mock can be overridden on the command line (empty string = use yaml value).
-
-Dedicated-bus bring-up only; a shared-bus host (e.g. lekiwi_ros2) re-implements this
-sequence instead of including it - see README's "Launch-time bring-up on a shared bus".
-"""
+"""Pan Tilt 100 control stack (dedicated bus); a shared-bus host re-implements this instead of including it."""
 
 import subprocess
 import sys
