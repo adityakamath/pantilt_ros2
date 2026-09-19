@@ -92,7 +92,7 @@ def test_pan_tilt_and_optical_axes(variant):
 
 @pytest.mark.parametrize('variant', VARIANTS)
 @pytest.mark.parametrize('joint,target', [(0, .6), (0, -.6), (1, .3), (1, -.3)])
-def test_step_response_settles_without_overshoot(variant, joint, target):
+def test_step_response_settles_with_bounded_overshoot(variant, joint, target):
     runtime = runtime_from_file(snapshot(variant))
     goal = [0., 0.]
     goal[joint] = target
@@ -102,7 +102,8 @@ def test_step_response_settles_without_overshoot(variant, joint, target):
         runtime.step()
         peak = max(peak, runtime.positions()[joint] * math.copysign(1, target))
     assert abs(runtime.positions()[joint] - target) < .01
-    assert peak - abs(target) < .02 * abs(target)
+    # The BAM-identified servo overshoots a little (about 4% pan, 8% tilt); it must stay small.
+    assert peak - abs(target) < .10 * abs(target)
 
 
 @pytest.mark.parametrize('variant', VARIANTS)
@@ -312,14 +313,15 @@ def test_profile_and_urdf_effort_own_actuation(workspace):
     module.write_text(module.read_text().replace('value="2.942"', 'value="1.5"'))
     config = workspace.simulation / 'config/mujoco.yaml'
     settings = yaml.safe_load(config.read_text())
-    settings['actuators']['pantilt'].update(position_gain=30., damping_ratio=2., armature=.05, frictionloss=.02)
+    settings['actuators']['pantilt'].update(position_gain=30., velocity_gain=.5, damping=.4, armature=.05, frictionloss=.02)
     config.write_text(yaml.safe_dump(settings))
     model = workspace.build_spec().compile()
     for name in JOINTS:
         actuator = model.actuator(name)
         joint = model.joint(name)
         assert np.allclose(actuator.forcerange, [-1.5, 1.5])
-        assert actuator.gainprm[0] == 30. and actuator.biasprm[1] == -30.
+        assert actuator.gainprm[0] == 30. and actuator.biasprm[1] == -30. and actuator.biasprm[2] == -.5
+        assert joint.damping[0] == pytest.approx(.4)
         assert joint.armature[0] == pytest.approx(.05) and joint.frictionloss[0] == pytest.approx(.02)
 
 

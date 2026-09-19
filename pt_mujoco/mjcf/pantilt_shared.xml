@@ -1,6 +1,6 @@
 <!--
   Variant-independent MJCF content for the PT100/PT101 pan-tilt: compiler options, shared
-  meshes/materials, default classes, actuators. Mirrors pantilt.common.xacro/control.xacro/
+  meshes/materials, default classes (servo dynamics come from sts3215.mjcf.xacro), actuators. Mirrors pantilt.common.xacro/control.xacro/
   module.xacro. Mesh paths are $(find pt_description)-absolute, not meshdir-relative -
   MuJoCo resolves meshdir against the top-level model file's directory (a launch-time temp
   file, not this one), so a relative path would silently break. Only ever spliced in via
@@ -22,22 +22,8 @@
   </asset>
 
   <default>
+    <xacro:include filename="$(find pt_mujoco)/mjcf/sts3215.mjcf.xacro"/>
     <default class="pantilt">
-      <!-- STS3215 servo (12V variant - see pantilt.control.xacro's matching comment) -->
-      <joint frictionloss="0.1" armature="0.1"/>
-      <!-- forcerange = +-max_torque_nm (2.942 N*m, 30 kgf*cm stall @ 12V).
-           dampratio=1.5, not the nominally-"critical" 1: at this forcerange, a full-range
-           step still saturates the actuator during the initial acceleration phase, and
-           recovering from that saturation needs extra damping margin to land without
-           overshoot - verified empirically (0.0% overshoot at dampratio=1.5 vs ~1.6-1.75%
-           at dampratio=1, stepping both joints through their full ±90° range). -->
-      <position kp="50" dampratio="1.5" forcerange="-2.942 2.942"/>
-      <default class="pan">
-        <joint axis="0 0 1" range="-1.5708 1.5708"/>
-      </default>
-      <default class="tilt">
-        <joint axis="0 0 -1" range="-1.5708 1.5708"/>
-      </default>
       <default class="visual">
         <geom type="mesh" contype="0" conaffinity="0" density="0" group="2"/>
       </default>
@@ -48,8 +34,8 @@
   </default>
 
   <actuator>
-    <position class="pan" name="shoulder_pan_joint" joint="shoulder_pan_joint" inheritrange="1"/>
-    <position class="tilt" name="tilt_joint" joint="tilt_joint" inheritrange="1"/>
+    <position class="pt_sts3215" name="shoulder_pan_joint" joint="shoulder_pan_joint" inheritrange="1"/>
+    <position class="pt_sts3215" name="tilt_joint" joint="tilt_joint" inheritrange="1"/>
   </actuator>
 
   <!-- Adjacent bodies' collision meshes overlap slightly at the joint (real geometry) -

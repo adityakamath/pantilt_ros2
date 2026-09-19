@@ -86,8 +86,7 @@ def sync_payload_parameters(spec, urdf, simulation, set_origin):
         effort = positive(urdf.find(f"joint[@name='{name}']/limit").get('effort'), name + ' effort')
         actuator.forcelimited = True
         actuator.forcerange = [-effort, effort]
+        joint.damping = [positive(settings['damping'], name + ' damping', True), 0, 0]
         gain = positive(settings['position_gain'], 'position_gain')
         actuator.gainprm[0], actuator.biasprm[1] = gain, -gain
-        # MjSpec position shortcut stores a positive bias[2] as dampratio
-        # until compilation resolves it against the effective joint inertia.
-        actuator.biasprm[2] = positive(settings['damping_ratio'], 'damping_ratio')
+        actuator.biasprm[2] = -positive(settings['velocity_gain'], 'velocity_gain', True)

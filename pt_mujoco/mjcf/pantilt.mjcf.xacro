@@ -66,7 +66,7 @@
       <body name="shoulder_link" pos="0.0452 0 0.0648559">
         <inertial pos="-9.07886e-05 0.0590972 -0.0172669" mass="0.119226"
                   diaginertia="5.94278e-05 5.89975e-05 3.13712e-05"/>
-        <joint name="shoulder_pan_joint" class="pan"/>
+        <joint name="shoulder_pan_joint" class="pt_sts3215" axis="0 0 1" range="-1.5708 1.5708"/>
         <geom mesh="shoulder_link_mesh" material="light_grey" class="visual"
               pos="${shoulder_link_geom_pos}" quat="${shoulder_link_geom_quat}"/>
         <geom mesh="tilt_motor" material="charcoal" class="visual"

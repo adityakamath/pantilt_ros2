@@ -90,9 +90,9 @@ this. A host loads `config/mujoco_ros2_control_plugins.yaml` for the camera plug
 
 | File | Controls |
 |---|---|
-| `config/mujoco.yaml` | Timestep, integrator and solver iterations; pan/tilt servo armature, friction and position gain (uncalibrated STS3215 approximation) |
+| `config/mujoco.yaml` | Timestep, integrator and solver iterations; pan/tilt servo profile (BAM-identified STS3215: gain, damping, armature, friction), applied over the MJCF default at build time |
 | `config/mujoco_ros2_control_plugins.yaml` | ROS camera plugin: topics, optical frame, 30 Hz rate |
-| `mjcf/pt.mjcf.xacro`, `pantilt.mjcf.xacro`, `pantilt_shared.xml`, `oakd_s2_subtree.xml` | Payload MJCF (entry file, `pantilt_body` macro, defaults and actuators, tilt link and camera); frames, mesh origins, inertias and limits are overwritten from the URDF at build time |
+| `mjcf/pt.mjcf.xacro`, `pantilt.mjcf.xacro`, `pantilt_shared.xml`, `oakd_s2_subtree.xml`, `sts3215.mjcf.xacro` | Payload MJCF (entry file, `pantilt_body` macro, defaults and actuators, tilt link and camera); frames, mesh origins, inertias and limits are overwritten from the URDF at build time |
 | `mjcf/scenes/flat.xml` | Floor only |
 
 Asset lookup uses the source checkout, ROS prefixes or the Python `share` directory; override with
@@ -102,8 +102,9 @@ the real controller uses.
 
 ## Limitations
 
-Servo dynamics and inertias are uncalibrated approximations (no torque-speed curve, backlash or
-sensor noise); a step response settles in about 0.55 s without overshoot. Camera rendering is
+The servo profile comes from BAM identification of a real STS3215 (12V); inertias, the torque limit
+(URDF effort) and everything else are unverified approximations (no torque-speed curve, backlash or
+sensor noise). A step response settles in about 0.3 s with 4% (pan) to 8% (tilt) overshoot. Camera rendering is
 headless (EGL); the MuJoCo viewer (`mujoco_gui:=true`, `mujoco_preview`) needs a display.
 
 ## Tests

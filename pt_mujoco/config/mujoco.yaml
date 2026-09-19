@@ -6,9 +6,12 @@ physics:
   integrator: implicitfast
   iterations: 60
 actuators:
-  # Uncalibrated STS3215 pan/tilt servo approximation; overwrites the MJCF default class at build time.
+  # BAM-identified STS3215 values (mjcf/sts3215.mjcf.xacro) - sync_payload_parameters() overwrites the
+  # MJCF default class's own values with these at build time, so this is what actually takes effect.
+  # The torque limit is not here: it comes from the URDF effort (12V stall torque, 30 kgf*cm).
   pantilt:
-    position_gain: 50.0
-    damping_ratio: 1.5
-    armature: 0.1
-    frictionloss: 0.1
+    position_gain: 42.911886
+    velocity_gain: 0.0
+    damping: 1.057835
+    armature: 0.032460
+    frictionloss: 0.195871
