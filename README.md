@@ -12,6 +12,15 @@ ROS 2 software stack for a 2-DOF pan-tilt camera mount built from [SO-100 or SO-
   <img width="500" height="575" alt="Screenshot 2026-04-28 at 15 56 11" src="https://github.com/user-attachments/assets/c9520454-7523-44a7-bcb3-8b6428437759" />
 </p>
 
+## Contents
+
+| Package | Purpose |
+|---------|----------|
+| [`pt_description`](pt_description/) | URDF/xacro model (standalone entry, embeddable macros, `pt100.urdf` and `pt101.urdf` pre-generated), meshes, `urdf.launch.py` |
+| [`pt_control`](pt_control/) | `ros2_control` setup and configuration (`urdf_config.yaml`, `pantilt_controller.yaml`, `teleop_config.yaml`) and `pantilt.launch.py` |
+| [`pt_bringup`](pt_bringup/) | Full-system launch, OAK-D S2 driver launch and configuration |
+| [`pt_mujoco`](pt_mujoco/) | MuJoCo model generated from the URDF, camera plugin config, standalone viewer, benchmark |
+
 ## Hardware
 
 | Component    | Details                                                                                             |
@@ -74,46 +83,7 @@ usb_max_current_enable=1
 
 pantilt_ros2 is a git submodule under `payloads/pantilt_ros2/` in [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2). After cloning it, run `git submodule update --init --recursive`.
 
-## Configuration
-
-### Serial port
-
-The default port is `/dev/ttySERVO`, a udev symlink you create yourself. Find your device (commonly `/dev/ttyACM0` or `/dev/ttyUSB0`), then either pass it at launch with `sts_serial_port:=/dev/ttyACM0` or set it permanently in [`pt_control/config/urdf_config.yaml`](pt_control/config/urdf_config.yaml).
-
-### Motor calibration
-
-Each motor has a centre position, in raw steps (0–4095), that maps to 0 rad in the URDF. The defaults match the reference build; every physical assembly differs, so recalibrate yours. Motor IDs, centres and joint limits are constants of the mechanism, so they live in the macro defaults of [`pt_description/urdf/pantilt.joints.xacro`](pt_description/urdf/pantilt.joints.xacro). Edit them there:
-
-```xml
-<xacro:macro name="pantilt_joints" params="
-    shoulder_pan_motor_id:=1
-    tilt_motor_id:=2
-    shoulder_pan_center_steps:=2048
-    tilt_center_steps:=2048
-    ...">
-```
-
-### Servo speed profile
-
-`internal_max_vel`, `internal_max_acc` and `internal_acc_coeff` in [`urdf_config.yaml`](pt_control/config/urdf_config.yaml) are written to each servo at start-up and set how fast it accelerates and moves. The default, 65 / 50 / 0, is slow and smooth. Raise the values to make the mount faster and snappier. The same file holds the baud rate and other bus settings.
-
-### Launch arguments
-
-| Argument           | Used by                    | Default         | Description |
-|--------------------|----------------------------|-----------------|-------------|
-| `sts_serial_port`  | `pt_control`, `pt_bringup` | from yaml       | Serial port; empty uses the value in `urdf_config.yaml` |
-| `use_mock`         | `pt_control`, `pt_bringup` | from yaml       | Run with simulated motors and no hardware |
-| `pantilt_config`   | `pt_control`, `pt_bringup` | `pt101`         | Mesh variant: `pt100` or `pt101` |
-| `diagnostics`      | `pt_control`, `pt_bringup` | `false`         | Publish motor temperature, voltage and current |
-| `pointcloud`       | `pt_bringup`               | `false`         | Aligned depth plus a compressed point cloud (higher CPU load) |
-| `octomap`          | `oakd.launch.py`           | `false`         | Build a persistent 3D octree from the point cloud (needs `pointcloud:=true`) |
-| `tf_parent_frame`  | `oakd.launch.py`           | `tilt_link`     | TF frame the camera is mounted to; change it to use the camera on a robot without the pan-tilt |
-| `sim`              | `pt_bringup`               | `false`         | Run in MuJoCo instead of on hardware (see [Simulation](#simulation)) |
-| `mujoco_gui`       | `pt_bringup`               | `false`         | `sim` only: open the MuJoCo viewer (needs a display) |
-| `mujoco_scene`     | `pt_control`, `pt_bringup` | `flat`          | `sim` only: `flat`, `none` or the path to a scene file |
-| `use_sim_time`     | `pt_control`, `pt_bringup` | `false`         | Use `/clock` from a simulator |
-
-## Usage
+## Running
 
 ```bash
 ros2 launch pt_bringup pantilt.launch.py                       # full system: control + camera
@@ -137,7 +107,57 @@ ros2 topic pub /pantilt_controller/commands std_msgs/msg/Float64MultiArray "{dat
 
 The button mapping is in [`pt_control/config/teleop_config.yaml`](pt_control/config/teleop_config.yaml).
 
-### Camera modes
+### Launch arguments
+
+| Argument           | Used by                    | Default         | Description |
+|--------------------|----------------------------|-----------------|-------------|
+| `sts_serial_port`  | `pt_control`, `pt_bringup` | from yaml       | Serial port; empty uses the value in `urdf_config.yaml` |
+| `use_mock`         | `pt_control`, `pt_bringup` | from yaml       | Run with simulated motors and no hardware |
+| `pantilt_config`   | `pt_control`, `pt_bringup` | `pt101`         | Mesh variant: `pt100` or `pt101` |
+| `diagnostics`      | `pt_control`, `pt_bringup` | `false`         | Publish motor temperature, voltage and current |
+| `pointcloud`       | `pt_bringup`               | `false`         | Aligned depth plus a compressed point cloud (higher CPU load) |
+| `octomap`          | `oakd.launch.py`           | `false`         | Build a persistent 3D octree from the point cloud (needs `pointcloud:=true`) |
+| `tf_parent_frame`  | `oakd.launch.py`           | `tilt_link`     | TF frame the camera is mounted to; change it to use the camera on a robot without the pan-tilt |
+| `sim`              | `pt_bringup`               | `false`         | Run in MuJoCo instead of on hardware (see [Simulation](#simulation)) |
+| `mujoco_gui`       | `pt_bringup`               | `false`         | `sim` only: open the MuJoCo viewer (needs a display) |
+| `mujoco_scene`     | `pt_control`, `pt_bringup` | `flat`          | `sim` only: `flat`, `none` or the path to a scene file |
+| `use_sim_time`     | `pt_control`, `pt_bringup` | `false`         | Use `/clock` from a simulator |
+
+## Configuration
+
+### Serial port
+
+The default port is `/dev/ttySERVO`, a udev symlink you create yourself. Find your device (commonly `/dev/ttyACM0` or `/dev/ttyUSB0`), then either pass it at launch with `sts_serial_port:=/dev/ttyACM0` or set it permanently in [`pt_control/config/urdf_config.yaml`](pt_control/config/urdf_config.yaml).
+
+### Motor calibration
+
+Each motor has a centre position, in raw steps (0–4095), that maps to 0 rad in the URDF. The defaults match the reference build; every physical assembly differs, so recalibrate yours. Motor IDs, centres and joint limits are constants of the mechanism, so they live in the macro defaults of [`pt_description/urdf/pantilt.joints.xacro`](pt_description/urdf/pantilt.joints.xacro). Edit them there:
+
+```xml
+<xacro:macro name="pantilt_joints" params="
+    shoulder_pan_motor_id:=1
+    tilt_motor_id:=2
+    shoulder_pan_center_steps:=2048
+    tilt_center_steps:=2048
+    ...">
+```
+
+### Servo speed profile
+
+`internal_max_vel`, `internal_max_acc` and `internal_acc_coeff` in [`urdf_config.yaml`](pt_control/config/urdf_config.yaml) are written to each servo at start-up and set how fast it accelerates and moves. The default, 65 / 50 / 0, is slow and smooth. Raise the values to make the mount faster and snappier. The same file holds the baud rate and other bus settings.
+
+### Files you may want to edit
+
+| File | What it sets |
+|------|--------------|
+| [`pt_control/config/urdf_config.yaml`](pt_control/config/urdf_config.yaml) | Serial port, baud rate, mock mode, servo speed profile |
+| [`pt_control/config/teleop_config.yaml`](pt_control/config/teleop_config.yaml) | Joystick buttons and axes |
+| [`pt_control/config/pantilt_controller.yaml`](pt_control/config/pantilt_controller.yaml) | The position controller (joints and interface); rarely changed |
+| [`pt_description/urdf/pantilt.joints.xacro`](pt_description/urdf/pantilt.joints.xacro) | Motor IDs, centre steps and joint limits (calibration) |
+| [`pt_bringup/config/oakd_vio.yaml`](pt_bringup/config/oakd_vio.yaml), `oakd_vio_pcl.yaml` | Camera resolution, frame rates and VIO settings |
+| [`pt_bringup/config/depthimage_to_laserscan.yaml`](pt_bringup/config/depthimage_to_laserscan.yaml) | Range and height of the `/oak/scan` slice |
+
+## Camera modes
 
 | Mode | What it publishes | Config |
 |------|-------------------|--------|
@@ -219,26 +239,6 @@ base_footprint                  ← standalone root only
             └── oak_link        ← OAK-D S2 optical centre
                 └── oak_imu_frame
 ```
-
-## Repository layout
-
-| Package | Contents |
-|---------|----------|
-| [`pt_description`](pt_description/) | URDF/xacro model (standalone entry, embeddable macros, `pt100.urdf` and `pt101.urdf` pre-generated), meshes, `urdf.launch.py` |
-| [`pt_control`](pt_control/) | `ros2_control` setup and configuration (`urdf_config.yaml`, `pantilt_controller.yaml`, `teleop_config.yaml`) and `pantilt.launch.py` |
-| [`pt_bringup`](pt_bringup/) | Full-system launch, OAK-D S2 driver launch and configuration |
-| [`pt_mujoco`](pt_mujoco/README.md) | MuJoCo model generated from the URDF, camera plugin config, standalone viewer, benchmark |
-
-### Files you may want to edit
-
-| File | What it sets |
-|------|--------------|
-| [`pt_control/config/urdf_config.yaml`](pt_control/config/urdf_config.yaml) | Serial port, baud rate, mock mode, servo speed profile |
-| [`pt_control/config/teleop_config.yaml`](pt_control/config/teleop_config.yaml) | Joystick buttons and axes |
-| [`pt_control/config/pantilt_controller.yaml`](pt_control/config/pantilt_controller.yaml) | The position controller (joints and interface); rarely changed |
-| [`pt_description/urdf/pantilt.joints.xacro`](pt_description/urdf/pantilt.joints.xacro) | Motor IDs, centre steps and joint limits (calibration) |
-| [`pt_bringup/config/oakd_vio.yaml`](pt_bringup/config/oakd_vio.yaml), `oakd_vio_pcl.yaml` | Camera resolution, frame rates and VIO settings |
-| [`pt_bringup/config/depthimage_to_laserscan.yaml`](pt_bringup/config/depthimage_to_laserscan.yaml) | Range and height of the `/oak/scan` slice |
 
 ## Troubleshooting
 
