@@ -1,4 +1,4 @@
-# pt_description
+# Pan Tilt Description
 
 URDF/xacro model of the Pan Tilt mechanisms - `pt100` and `pt101` (two STS3215 servos and an OAK-D S2 camera), its meshes, and a launch file for viewing it. The same files describe the standalone pan-tilt and the module that other robots embed. Everything else in the `pantilt_ros2` repository, including the MuJoCo model, is generated from this description.
 
@@ -16,7 +16,11 @@ URDF/xacro model of the Pan Tilt mechanisms - `pt100` and `pt101` (two STS3215 s
 | `meshes/` | STL files for the base, shoulder, motors and camera |
 | `launch/urdf.launch.py` | Starts `robot_state_publisher` with the standalone URDF |
 
-## Viewing the model
+## Requirements
+
+ROS 2 Kilted with `xacro` and `robot_state_publisher`, which come with the ROS 2 desktop packages. There are no other dependencies.
+
+## Running
 
 ```bash
 ros2 launch pt_description urdf.launch.py
@@ -28,7 +32,9 @@ This starts only `robot_state_publisher`, with no hardware, controllers or teleo
 xacro pantilt.urdf.xacro pantilt_config:=pt100
 ```
 
-## Arguments
+## Configuration
+
+### Arguments
 
 Pass these to `xacro` as `name:=value`. The launch files in `pt_control` fill them in from `urdf_config.yaml`.
 
@@ -45,11 +51,11 @@ Pass these to `xacro` as `name:=value`. The launch files in `pt_control` fill th
 | `ros2_control_hardware_type` | `real` | Hardware plugin: `real` (`sts_hardware_interface`), `gazebo` or `mujoco`; the joints and controllers are the same for all three |
 | `mujoco_model`, `mujoco_headless` | `""`, `false` | `mujoco` only: the generated MJCF to load and whether to skip the viewer |
 
-## Mesh variants
+### Mesh variants
 
 PT100 is built from SO-ARM100 base and shoulder parts and PT101 from the SO-ARM101 equivalents. Only the body meshes and their visual offsets differ; every link origin, joint axis and the mount to a host robot are identical, so PT101 is a drop-in replacement for PT100.
 
-## Calibration and limits
+### Calibration and limits
 
 Motor IDs, step centres and joint limits belong to the mechanism, not to a deployment, so they are the macro defaults in `pantilt.joints.xacro`:
 
@@ -62,10 +68,6 @@ Motor IDs, step centres and joint limits belong to the mechanism, not to a deplo
 Recalibrate a physical unit by editing these defaults. A host robot on a shared bus can instead pass different values on its own `<xacro:pantilt_joints .../>` call.
 
 The joint `<limit>` velocity is `1e6` (effectively unlimited) for `real` and `mujoco`, because `joy_teleop` sends absolute positions that can jump far in one control cycle and would otherwise trigger spurious limit errors. The real speed ceiling is the servo's own: 85% of `sts3215_max_vel_steps`, plus the EEPROM profile above. Only `gazebo` uses the computed limit. The torque limit is 2.942 N·m (30 kgf·cm, the 12 V STS3215).
-
-## Embedding in another robot
-
-Include the macros in the host's URDF and call them at the mount point. See the [repository README](../README.md#using-it-on-another-robot) for the dedicated-bus and shared-bus examples. [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2) is the reference host.
 
 ## Frames
 
@@ -89,6 +91,10 @@ for v in pt100 pt101; do
   sed -i 's#package://pt_description/meshes/#../meshes/#g' $v.urdf
 done
 ```
+
+## Using it on another robot
+
+Include the macros in the host's URDF and call them at the mount point. See the [repository README](../README.md#using-it-on-another-robot) for the dedicated-bus and shared-bus examples. [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2) is the reference host.
 
 ## Tests
 

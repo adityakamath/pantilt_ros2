@@ -1,6 +1,6 @@
-# pt_bringup
+# Pan Tilt Bringup
 
-System-level launch files for the Pan Tilt 100: the full bringup (control and camera), the OAK-D S2 camera on its own, and the camera configuration.
+System-level launch files for the Pan Tilt mechanism (`pt100`, `pt101`): the full bringup (control and camera), the OAK-D S2 camera on its own, and the camera configuration.
 
 ## Contents
 
@@ -13,6 +13,10 @@ System-level launch files for the Pan Tilt 100: the full bringup (control and ca
 | `config/depthimage_to_laserscan.yaml` | The `/oak/scan` slice |
 | `config/octomap.yaml` | `octomap_server` settings |
 | `src/pcl_compressor_node.cpp` | Composable node that compresses the point cloud with [cloudini](https://github.com/facontidavide/cloudini) |
+
+## Requirements
+
+ROS 2 Kilted with `depthai-ros` and `octomap_server` at runtime, plus `pt_control`. Building the C++ point cloud node needs [cloudini](https://github.com/facontidavide/cloudini) and `point_cloud_interfaces`, which are not plain apt packages; clone cloudini into the workspace as described in the [repository README](../README.md#installation). On a Raspberry Pi 5 the camera also needs a raised USB current limit (see the [repository README](../README.md#raspberry-pi-5)).
 
 ## Running
 
@@ -40,6 +44,14 @@ The `joy` node is not started; run `ros2 run joy joy_node` before using a joysti
 
 `oakd.launch.py` takes only `pointcloud`, `octomap` and `tf_parent_frame`. `octomap` and `tf_parent_frame` are also accepted by `pantilt.launch.py` and passed on.
 
+## Configuration
+
+| File | Common changes |
+|------|----------------|
+| `oakd_vio.yaml` | Camera resolution and frame rates, IMU rates, depth threshold, USB speed |
+| `depthimage_to_laserscan.yaml` | `scan_height` (rows sampled), `range_min` and `range_max` for `/oak/scan` |
+| `octomap.yaml` | Octree `resolution`, `frame_id`, sensor `max_range` |
+
 ## Camera modes
 
 | Mode | Publishes | Config |
@@ -53,17 +65,7 @@ The `joy` node is not started; run `ros2 run joy joy_node` before using a joysti
 - **Compression** uses cloudini at 1 mm resolution and leaves colour uncompressed; the resolution is in `oakd_vio_pcl.yaml`.
 - **Octomap** builds its tree in the `odom` frame at 5 cm resolution. It looks up the camera's TF for each cloud, so points land correctly while the pan-tilt sweeps. It expects a robot that publishes `odom` and `base_footprint`; adjust `octomap.yaml` if yours differs.
 
-## Configuration
-
-| File | Common changes |
-|------|----------------|
-| `oakd_vio.yaml` | Camera resolution and frame rates, IMU rates, depth threshold, USB speed |
-| `depthimage_to_laserscan.yaml` | `scan_height` (rows sampled), `range_min` and `range_max` for `/oak/scan` |
-| `octomap.yaml` | Octree `resolution`, `frame_id`, sensor `max_range` |
-
-To mount the camera without the pan-tilt, on another robot, pass `tf_parent_frame` with that robot's camera mount link to `oakd.launch.py`.
-
-## Debugging
+## Troubleshooting
 
 Set `DEPTHAI_DEBUG=1` before launching for verbose camera driver logs:
 
@@ -71,8 +73,10 @@ Set `DEPTHAI_DEBUG=1` before launching for verbose camera driver logs:
 DEPTHAI_DEBUG=1 ros2 launch pt_bringup pantilt.launch.py
 ```
 
-The camera needs USB 3.0 and, on a Raspberry Pi 5, a raised USB current limit (see the [repository README](../README.md#raspberry-pi-5)).
+## Using it on another robot
 
-## Building
+To use the camera on a robot without the pan-tilt, launch `oakd.launch.py` with `tf_parent_frame` set to that robot's camera mount link. `pantilt.launch.py` runs its own controller manager, so a robot that shares the servo bus does not include it; see [`pt_control`](../pt_control/README.md#using-it-on-another-robot).
 
-This package builds a C++ node that needs [cloudini](https://github.com/facontidavide/cloudini) and `point_cloud_interfaces`, which are not plain apt packages, and it needs `depthai-ros` at runtime. Clone cloudini into the workspace as described in the [repository README](../README.md#installation). It has no tests of its own, and CI does not build it for this reason.
+## Tests
+
+This package has no tests of its own, and CI does not build it (cloudini and `depthai-ros` are not plain apt packages).

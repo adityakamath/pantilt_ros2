@@ -1,4 +1,4 @@
-# pt_control
+# Pan Tilt Control
 
 The `ros2_control` setup for the Pan Tilt mechanism (`pt100`, `pt101`): controllers, configuration, joystick teleop and the launch file that brings them up on real hardware, in mock mode, or in the MuJoCo simulation.
 
@@ -12,6 +12,10 @@ The `ros2_control` setup for the Pan Tilt mechanism (`pt100`, `pt101`): controll
 | `config/pantilt_config.yaml` | Controller manager (50 Hz) and the joint state broadcaster |
 | `config/pantilt_controller.yaml` | The position controller: its type, joints and interface |
 | `config/teleop_config.yaml` | Joystick buttons and axes |
+
+## Requirements
+
+ROS 2 Kilted with `ros2_control`, `joint_state_broadcaster`, `forward_command_controller` and [`joy_teleop`](https://index.ros.org/p/joy_teleop/), plus [`sts_hardware_interface`](https://github.com/adityakamath/sts_hardware_interface) (real hardware) and `pt_description`. The MuJoCo mode also needs `pt_mujoco` and its [simulation packages](../README.md#simulation-optional).
 
 ## Running
 
@@ -63,7 +67,7 @@ The launch file expands the URDF from `pt_description` with the values in `urdf_
 
 In `mujoco` mode the launch file starts `mujoco_ros2_control`'s own `ros2_control_node`, which runs the simulation in the same process, instead of the standard controller manager. It first builds the MuJoCo model from the URDF with `pt_mujoco`, then loads that package's camera and emergency-stop plugin configuration, and adds three helper nodes: a compressed-image republisher for `/oak/rgb/image_raw`, the static transform from `oak_link` to the camera's optical frame, and `depthimage_to_laserscan` for `/oak/scan`. See the [`pt_mujoco` README](../pt_mujoco/README.md).
 
-## Using it from another robot
+## Using it on another robot
 
 `pt_bringup` and this launch file run their own controller manager, so a robot that shares the servo bus does not include them. It runs one controller manager for everything and reuses this package's controller file, servo profile and teleop mapping. [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2) does this; see the [repository README](../README.md#using-it-on-another-robot).
 

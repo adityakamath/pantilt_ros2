@@ -1,10 +1,21 @@
-# Pan-Tilt MuJoCo
+# Pan Tilt MuJoCo
 
 MuJoCo models of the Pan Tilt mechanism (`pt100`, `pt101`) and its OAK-D S2 camera, generated from the URDF in `pt_description`. The package gives you three ways to use them:
 
 - **Standalone:** a native viewer, a model builder and a benchmark, with no ROS needed.
 - **ROS simulation:** `sim:=true` runs the same controllers and teleop as the real pan-tilt against the model in `mujoco_ros2_control`.
 - **Payload for another robot:** hosts such as [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2) attach the model to their own.
+
+## Contents
+
+| Path | Purpose |
+|------|---------|
+| `pt_mujoco/build_mujoco_models.py` | Builds the model from the URDF, and `build_payload_spec` for host robots |
+| `pt_mujoco/mujoco_parameters.py` | Applies the servo profile from `config/mujoco.yaml` to the model |
+| `pt_mujoco/simulation.py` | The simulation without ROS: reset, command, step |
+| `pt_mujoco/mujoco_preview.py`, `benchmark_mujoco.py` | Native viewer and step-response benchmark |
+| `config/` | Physics and servo profile, ROS plugin configuration, depth-to-scan slice |
+| `mjcf/` | MJCF sources, the `scenes/` floor and the pre-built `pt100`/`pt101` models |
 
 ## Requirements
 
@@ -14,7 +25,9 @@ MuJoCo models of the Pan Tilt mechanism (`pt100`, `pt101`) and its OAK-D S2 came
   - `sudo apt install ros-kilted-mujoco-ros2-control ros-kilted-mujoco-ros2-control-plugins ros-kilted-image-transport-plugins` (0.1.2 or newer; older releases have no camera plugin)
   - [mujoco_ros2_plugins](https://github.com/adityakamath/mujoco_ros2_plugins), cloned into the same workspace. It provides the simulated `/emergency_stop`, and launch fails if it is missing.
 
-## Standalone use
+## Running
+
+### Standalone
 
 Run these from this directory (`mjpython` instead of `python3` on macOS for the viewer):
 
@@ -42,7 +55,7 @@ sim.step(500)
 print(sim.positions())
 ```
 
-## ROS simulation
+### ROS simulation
 
 Build the workspace as described in the [repository README](../README.md#installation), then:
 
@@ -67,19 +80,6 @@ ros2 topic pub /pantilt_controller/commands std_msgs/msg/Float64MultiArray "{dat
 
 The camera is set to the real pipeline's 30 Hz. Headless rendering on a Raspberry Pi 5 delivered about 19 Hz, with the simulation still running in real time.
 
-## Use as a payload in another robot
-
-```python
-from pt_mujoco.build_mujoco_models import build_payload_spec
-
-payload = build_payload_spec(variant, urdf, joint_limits, description_dir)
-payload.default.name = 'pt_payload'
-frame = host.body('base_link').add_frame(name='pantilt_mount')   # placed from the host's URDF
-host.attach(payload, prefix='', frame=frame)
-```
-
-`urdf` is the host's own expanded URDF, which must contain the pan-tilt, so the host stays the source of truth for where the pan-tilt is mounted. `joint_limits` is an optional dictionary of joint limit overrides (`{}` to use the URDF's limits). Everything else, meaning inertias, torque limits, servo parameters and the camera with its orientation, comes from this package. lekiwi_mujoco does exactly this. A host also loads `config/mujoco_ros2_control_plugins.yaml` for the camera plugin, and may lower the camera rate with `camera_publish_rate`.
-
 ## Configuration
 
 | File | What it sets |
@@ -96,6 +96,19 @@ If the package cannot find its files, point it at them with `PT_MUJOCO_SHARE`, `
 ## Limitations
 
 Only the servo profile is measured (a real STS3215 at 12 V). Inertias, the torque limit and everything else are approximations, and there is no torque-speed curve, backlash or sensor noise. A step response settles in about 0.3 s with 4% (pan) to 8% (tilt) overshoot. The camera renders headless; the MuJoCo viewer (`mujoco_gui:=true` and `mujoco_preview`) needs a display.
+
+## Using it on another robot
+
+```python
+from pt_mujoco.build_mujoco_models import build_payload_spec
+
+payload = build_payload_spec(variant, urdf, joint_limits, description_dir)
+payload.default.name = 'pt_payload'
+frame = host.body('base_link').add_frame(name='pantilt_mount')   # placed from the host's URDF
+host.attach(payload, prefix='', frame=frame)
+```
+
+`urdf` is the host's own expanded URDF, which must contain the pan-tilt, so the host stays the source of truth for where the pan-tilt is mounted. `joint_limits` is an optional dictionary of joint limit overrides (`{}` to use the URDF's limits). Everything else, meaning inertias, torque limits, servo parameters and the camera with its orientation, comes from this package. lekiwi_mujoco does exactly this. A host also loads `config/mujoco_ros2_control_plugins.yaml` for the camera plugin, and may lower the camera rate with `camera_publish_rate`.
 
 ## Tests
 
