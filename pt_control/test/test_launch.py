@@ -61,7 +61,7 @@ def test_servo_profile_keys_are_set_in_range_and_match_the_modules_defaults():
 def test_control_launch_passes_the_servo_profile_to_the_urdf():
     source = (REPOSITORY / 'pt_control/launch/pantilt.launch.py').read_text()
     for key in ('internal_max_vel', 'internal_max_acc', 'internal_acc_coeff'):
-        assert f"{key}:={{_cfg[\"{key}\"]}}" in source, key
+        assert f'{key}:={{_cfg["{key}"]}}' in source, key
 
 
 def test_sim_launch_slices_the_simulated_depth_into_oak_scan_like_the_real_bringup():

@@ -10,22 +10,22 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     """Launch joy_teleop with the PT100 axis/button mapping config."""
     teleop_config = PathJoinSubstitution(
-        [FindPackageShare("pt_control"), "config", "teleop_config.yaml"]
+        [FindPackageShare('pt_control'), 'config', 'teleop_config.yaml']
     )
 
     teleop_node = Node(
-        package="joy_teleop",
-        executable="joy_teleop",
-        name="joy_teleop",
-        output="screen",
-        parameters=[teleop_config, {"use_sim_time": LaunchConfiguration("use_sim_time")}],
+        package='joy_teleop',
+        executable='joy_teleop',
+        name='joy_teleop',
+        output='screen',
+        parameters=[teleop_config, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
     )
 
     return LaunchDescription([
         DeclareLaunchArgument(
-            "use_sim_time",
-            default_value="false",
-            description="Use /clock from a simulator instead of system time.",
+            'use_sim_time',
+            default_value='false',
+            description='Use /clock from a simulator instead of system time.',
         ),
         teleop_node,
     ])

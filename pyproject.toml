@@ -3,8 +3,11 @@ line-length = 99
 target-version = "py312"
 
 [tool.ruff.lint]
-# No import sorting (I): ament_flake8 owns import order
-select = ["E", "F", "W"]
+# No import sorting (I): ament_flake8 owns import order; Q enforces single quotes
+select = ["E", "F", "W", "Q"]
 ignore = [
     "E501",  # line length - not enforced here; several pre-existing lines already exceed it
 ]
+
+[tool.ruff.lint.flake8-quotes]
+inline-quotes = "single"
