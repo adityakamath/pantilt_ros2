@@ -57,6 +57,7 @@ def launch_setup(context):
 
     pkg_ctrl = FindPackageShare('pt_control').perform(context)
     pkg_desc = FindPackageShare('pt_description').perform(context)
+    pkg_mujoco = FindPackageShare('pt_mujoco').perform(context)
     xacro    = FindExecutable(name='xacro').perform(context)
 
     # MJCF must be xacro-processed here (unlike robot_description below, it has to land on
@@ -66,7 +67,7 @@ def launch_setup(context):
         final_mujoco_model = mujoco_model
     elif hw_type == 'mujoco':
         mjcf_xml = subprocess.run(
-            [xacro, f'{pkg_desc}/mjcf/pantilt.mjcf.xacro', f'pantilt_config:={pantilt_config}'],
+            [xacro, f'{pkg_mujoco}/mjcf/pantilt.mjcf.xacro', f'pantilt_config:={pantilt_config}'],
             capture_output=True, text=True, check=True,
         ).stdout
         mjcf_file = tempfile.NamedTemporaryFile(
@@ -220,7 +221,7 @@ def generate_launch_description():
             'mujoco_model',
             default_value='',
             description='Path to a pre-built MJCF file to load; empty means xacro-process '
-                        'pt_description/mjcf/pantilt.mjcf.xacro with pantilt_config at launch '
+                        'pt_mujoco/mjcf/pantilt.mjcf.xacro with pantilt_config at launch '
                         'time instead (so pantilt_config alone picks the pt100/pt101 MJCF too). Only '
                         'used when ros2_control_hardware_type:="mujoco".',
         ),

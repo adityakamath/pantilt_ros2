@@ -28,7 +28,7 @@
   <!-- Path to the controllers YAML the embedded controller_manager should load; only
        used when the <gazebo> plugin below is actually instantiated (i.e. in sim). -->
   <xacro:arg name="simulation_controllers" default=""/>
-  <!-- mujoco mode only: path to the xacro-generated MJCF scene (pt_description/mjcf/
+  <!-- mujoco mode only: path to the xacro-generated MJCF scene (pt_mujoco/mjcf/
        pantilt.mjcf.xacro, xacro-processed at launch time with pantilt_config picking the
        pt100/pt101 mesh variant - see pt_control/launch/pantilt.launch.py) and whether to
        open the MuJoCo Simulate viewer window. -->

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Smoke tests for pt_description's URDF/MJCF xacro files.
+Smoke tests for pt_description's URDF xacro files (the MJCF lives in pt_mujoco).
 
 Pure xacro-processing + XML-structure checks: no ROS graph, no rclpy, no nodes. Runs `xacro`
 as a subprocess and inspects its output - mirrors so_arm_description's test_urdf_xacro.py in
@@ -109,28 +109,3 @@ def test_ros2_control_hardware_plugin_matches_type(pantilt_config, hardware_type
     plugin = root.find('ros2_control/hardware/plugin')
     assert plugin is not None, f'{pantilt_config}/{hardware_type}: no <plugin> emitted'
     assert plugin.text == _HARDWARE_PLUGINS[hardware_type]
-
-
-# ── MJCF xacro ──────────────────────────────────────────────────────────────
-
-@pytest.mark.parametrize('pantilt_config', _CONFIGS)
-@pytest.mark.parametrize('standalone', ('true', 'false'))
-def test_mjcf_processes_to_valid_xml(pantilt_config, standalone):
-    mjcf_file = os.path.join(_SHARE, 'mjcf', 'pantilt.mjcf.xacro')
-    root = ET.fromstring(_run_xacro(
-        mjcf_file, f'pantilt_config:={pantilt_config}', f'standalone:={standalone}',
-    ))
-    assert root.tag == 'mujoco'
-    assert root.find('worldbody') is not None or standalone == 'false'
-
-
-@pytest.mark.parametrize('pantilt_config', _CONFIGS)
-def test_mjcf_referenced_meshes_exist_on_disk(pantilt_config):
-    mjcf_file = os.path.join(_SHARE, 'mjcf', 'pantilt.mjcf.xacro')
-    root = ET.fromstring(_run_xacro(mjcf_file, f'pantilt_config:={pantilt_config}'))
-    meshes = root.findall('asset/mesh')
-    assert meshes, f'{pantilt_config}: no <mesh> assets found in MJCF'
-    for mesh in meshes:
-        file_ref = mesh.get('file')
-        assert file_ref and os.path.isfile(file_ref), \
-            f'{pantilt_config}: missing MJCF mesh {file_ref}'

@@ -2,7 +2,7 @@
 # (pt_control/launch/pantilt.launch.py passes this to mujoco_ros2_control's ros2_control_node
 # via ParameterFile).
 #
-# CameraPlugin publishes the oak_rgb <camera> (pt_description/mjcf/oakd_s2_subtree.xml) as
+# CameraPlugin publishes the oak_rgb <camera> (pt_mujoco/mjcf/oakd_s2_subtree.xml) as
 # RGB-D + camera_info. Topic names match the real depthai_ros_driver's topics exactly
 # (see README ROS Interfaces table: /oak/rgb/image_raw, /oak/stereo/image_raw) so downstream
 # consumers don't need to know whether they're talking to real or simulated camera.

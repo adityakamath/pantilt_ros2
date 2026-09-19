@@ -19,6 +19,7 @@
   <exec_depend>joy_teleop</exec_depend>
 
   <exec_depend>pt_description</exec_depend>
+  <exec_depend>pt_mujoco</exec_depend>
   <exec_depend>sts_hardware_interface</exec_depend>
 
   <!-- ros2_control_hardware_type:="mujoco" only - this package starts

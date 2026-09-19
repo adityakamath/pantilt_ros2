@@ -19,7 +19,7 @@
 
   <!-- xacro:include, not a plain <include> - pantilt_shared.xml's mesh paths use $(find),
        which only xacro resolves. -->
-  <xacro:include filename="$(find pt_description)/mjcf/pantilt_shared.xml"/>
+  <xacro:include filename="$(find pt_mujoco)/mjcf/pantilt_shared.xml"/>
 
   <!-- Mesh files and mesh-local offset corrections - pt100 defaults below, overridden for
        pt101. Not $(find)-included from pantilt.common.xacro's equivalent properties: URDF's
@@ -84,7 +84,7 @@
         <geom mesh="shoulder_link_mesh" class="collision"
               pos="${shoulder_link_geom_pos}" quat="${shoulder_link_geom_quat}"/>
 
-        <include file="$(find pt_description)/mjcf/oakd_s2_subtree.xml"/>
+        <include file="$(find pt_mujoco)/mjcf/oakd_s2_subtree.xml"/>
       </body>
     </body>
   </xacro:macro>
