@@ -62,7 +62,7 @@ A host embedding this mechanism on a shared bus (e.g. `lekiwi_ros2`) can still o
 - **[cloudini](https://github.com/facontidavide/cloudini)** — high-performance point cloud compression library; required by `pt_bringup` for the PCL compressor node (point cloud mode only)
 - **[joy_teleop](https://index.ros.org/p/joy_teleop/)** — joystick-to-topic bridge (included in this package's launch)
 - **[mujoco_ros2_control](https://github.com/ros-controls/mujoco_ros2_control)** / **mujoco_ros2_control_plugins** — `sim:=true` only (see [Simulation](#simulation)); `sudo apt install ros-kilted-mujoco-ros2-control ros-kilted-mujoco-ros2-control-plugins ros-kilted-image-transport-plugins` (0.1.2 or newer)
-- **mujoco_ros2_plugins** (e.g. from [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2)'s `modules/`) — `sim:=true` only: serves `/emergency_stop` in the simulation like the real hardware interface
+- **[mujoco_ros2_plugins](https://github.com/adityakamath/mujoco_ros2_plugins)** (clone it into the same workspace) — `sim:=true` only: serves `/emergency_stop` in the simulation like the real hardware interface
 - **[mujoco](https://pypi.org/project/mujoco/)** (pip, 3.13.0) — used by [`pt_mujoco`](pt_mujoco/README.md) to generate the simulation model and for its standalone viewer; `pip install -r pt_mujoco/requirements.txt`
 
 > **⚠️ Joystick:** `joy_teleop` is included but the [`joy`](https://github.com/ros-drivers/joystick_drivers) node is **not** — it must be started separately (on the same or a networked device) before the system will respond to controller input:

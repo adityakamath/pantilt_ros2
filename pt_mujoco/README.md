@@ -13,7 +13,7 @@ MuJoCo models of the pan-tilt payload (`pt100`, `pt101`) with its OAK-D S2 camer
 - ROS sim only (Kilted): `sudo apt install ros-kilted-mujoco-ros2-control
   ros-kilted-mujoco-ros2-control-plugins ros-kilted-image-transport-plugins` (0.1.2 or newer; older
   releases have no camera plugin).
-- `mujoco_ros2_plugins` (in the same workspace, e.g. from lekiwi_ros2's `modules/`): serves `/emergency_stop` in the
+- [mujoco_ros2_plugins](https://github.com/adityakamath/mujoco_ros2_plugins) (clone it into the same workspace): serves `/emergency_stop` in the
   simulation. The plugin config loads it, and a missing plugin class is fatal at launch.
 
 ## Standalone use
