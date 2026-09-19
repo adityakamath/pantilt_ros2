@@ -19,6 +19,7 @@ sequence instead of including it - see README's "Launch-time bring-up on a share
 """
 
 import subprocess
+import sys
 import tempfile
 
 import yaml
@@ -53,6 +54,7 @@ def launch_setup(context):
     use_sim_time   = _launch_arg_as_bool(context, 'use_sim_time')
     hw_type = LaunchConfiguration('ros2_control_hardware_type').perform(context)
     mujoco_model    = LaunchConfiguration('mujoco_model').perform(context)
+    mujoco_scene    = LaunchConfiguration('mujoco_scene').perform(context)
     mujoco_headless = LaunchConfiguration('mujoco_headless').perform(context)
 
     pkg_ctrl = FindPackageShare('pt_control').perform(context)
@@ -60,21 +62,20 @@ def launch_setup(context):
     pkg_mujoco = FindPackageShare('pt_mujoco').perform(context)
     xacro    = FindExecutable(name='xacro').perform(context)
 
-    # MJCF must be xacro-processed here (unlike robot_description below, it has to land on
-    # disk since MJCF's <include> is filesystem-path-based, not an in-memory param string).
-    # Same pantilt_config arg picks both the URDF and MJCF mesh variant.
+    # The control plugin loads MJCF from disk. pt_mujoco's builder syncs frames, inertias and limits
+    # from the URDF and composes the scene; pantilt_config picks the pt100/pt101 variant.
     if mujoco_model:
         final_mujoco_model = mujoco_model
     elif hw_type == 'mujoco':
-        mjcf_xml = subprocess.run(
-            [xacro, f'{pkg_mujoco}/mjcf/pantilt.mjcf.xacro', f'pantilt_config:={pantilt_config}'],
-            capture_output=True, text=True, check=True,
-        ).stdout
-        mjcf_file = tempfile.NamedTemporaryFile(
-            mode='w', suffix='.xml', prefix='pantilt_mujoco_', delete=False)
-        mjcf_file.write(mjcf_xml)
-        mjcf_file.close()
-        final_mujoco_model = mjcf_file.name
+        with tempfile.NamedTemporaryFile(
+                suffix='.xml', prefix='pantilt_mujoco_', delete=False) as mjcf_file:
+            final_mujoco_model = mjcf_file.name
+        subprocess.run([
+            sys.executable, '-m', 'pt_mujoco.build_mujoco_models',
+            '--control-package', pkg_ctrl, '--description-package', pkg_desc,
+            '--variant', pantilt_config, '--output', final_mujoco_model, '--absolute',
+            '--scene', mujoco_scene,
+        ], capture_output=True, text=True, check=True)
     else:
         final_mujoco_model = ''
 
@@ -124,16 +125,14 @@ def launch_setup(context):
     )
 
     # mujoco_ros2_control ships its own ros2_control_node, hosting the MuJoCo simulation
-    # itself - use_sim_time:true is required regardless of the launch arg. The
-    # mujoco_ros2_control_plugins.yaml CameraPlugin config isn't loaded here yet - the apt
-    # package (0.0.3) doesn't ship CameraPlugin, and loading a nonexistent plugin class is a
-    # fatal error, not a skip. See README's "Camera (oak_rgb)" section.
+    # itself - use_sim_time:true is required regardless of the launch arg.
     mujoco_control_node = Node(
         package='mujoco_ros2_control',
         executable='ros2_control_node',
         parameters=[
             robot_description,
             f'{pkg_ctrl}/config/pantilt_config.yaml',
+            f'{pkg_mujoco}/config/mujoco_ros2_control_plugins.yaml',
             {'use_sim_time': True},
         ],
         remappings=[('/diagnostics', '/controller_manager/diagnostics')],
@@ -159,9 +158,34 @@ def launch_setup(context):
 
     control_node_actions = [mujoco_control_node] if hw_type == 'mujoco' else [controller_manager]
 
+    # Sim-only extras: the camera plugin publishes raw only, so add /oak/rgb/image_raw/compressed
+    # for viewers, and the optical frame its images are stamped in needs a TF from oak_link.
+    sim_nodes = []
+    if hw_type == 'mujoco':
+        sim_nodes = [
+            Node(
+                package='image_transport',
+                executable='republish',
+                name='oak_rgb_compressor',
+                output='log',
+                parameters=[{'in_transport': 'raw', 'out_transport': 'compressed', 'use_sim_time': True}],
+                remappings=[('in', '/oak/rgb/image_raw'), ('out/compressed', '/oak/rgb/image_raw/compressed')],
+            ),
+            Node(
+                package='tf2_ros',
+                executable='static_transform_publisher',
+                name='oak_optical_frame_publisher',
+                output='log',
+                arguments=['--frame-id', 'oak_link', '--child-frame-id', 'oak_rgb_camera_optical_frame',
+                           '--roll', '-1.5707963', '--pitch', '0', '--yaw', '-1.5707963'],
+                parameters=[{'use_sim_time': True}],
+            ),
+        ]
+
     actions = [
         robot_state_publisher,
         *control_node_actions,
+        *sim_nodes,
         TimerAction(period=2.0, actions=[Node(
             package='controller_manager', executable='spawner',
             arguments=['joint_state_broadcaster', '-c', 'controller_manager',
@@ -218,12 +242,16 @@ def generate_launch_description():
                         'this launch file.)',
         ),
         DeclareLaunchArgument(
+            'mujoco_scene',
+            default_value='flat',
+            description='flat, none, or scene MJCF path for generated models. [mujoco only]',
+        ),
+        DeclareLaunchArgument(
             'mujoco_model',
             default_value='',
-            description='Path to a pre-built MJCF file to load; empty means xacro-process '
-                        'pt_mujoco/mjcf/pantilt.mjcf.xacro with pantilt_config at launch '
-                        'time instead (so pantilt_config alone picks the pt100/pt101 MJCF too). Only '
-                        'used when ros2_control_hardware_type:="mujoco".',
+            description='Path to a pre-built MJCF file to load; empty means generate one with '
+                        'pt_mujoco at launch time instead (pantilt_config picks the pt100/pt101 '
+                        'variant). Only used when ros2_control_hardware_type:="mujoco".',
         ),
         DeclareLaunchArgument(
             'mujoco_headless',

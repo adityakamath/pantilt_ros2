@@ -26,25 +26,38 @@ def package_paths():
         xacro.substitution_args._eval_find = original
 
 
-def process(config, standalone):
+def process(config, entry='pt.mjcf.xacro'):
     with package_paths():
-        doc = xacro.process_file(str(ROOT / 'mjcf/pantilt.mjcf.xacro'),
-                                 mappings={'pantilt_config': config, 'standalone': standalone})
+        doc = xacro.process_file(str(ROOT / 'mjcf' / entry), mappings={'pantilt_config': config})
     return ET.fromstring(doc.toxml())
 
 
 @pytest.mark.parametrize('config', CONFIGS)
-@pytest.mark.parametrize('standalone', ('true', 'false'))
-def test_mjcf_processes_to_valid_xml(config, standalone):
-    root = process(config, standalone)
+def test_entry_file_fixes_the_payload_to_the_world(config):
+    root = process(config)
     assert root.tag == 'mujoco'
-    assert root.find('worldbody') is not None or standalone == 'false'
+    bodies = root.findall('worldbody/body')
+    assert [body.get('name') for body in bodies] == ['pantilt_base_link']
+    assert root.find('worldbody/geom') is None and not root.findall('asset/texture')
+
+
+@pytest.mark.parametrize('config', CONFIGS)
+def test_library_alone_adds_no_worldbody_or_scene(config):
+    root = process(config, 'pantilt.mjcf.xacro')
+    assert root.find('worldbody') is None
+    assert not root.findall('asset/texture') and root.find('light') is None
 
 
 @pytest.mark.parametrize('config', CONFIGS)
 def test_mjcf_referenced_meshes_exist_on_disk(config):
-    meshes = process(config, 'true').findall('asset/mesh')
+    meshes = process(config).findall('asset/mesh')
     assert meshes, f'{config}: no <mesh> assets found in MJCF'
     for mesh in meshes:
         assert mesh.get('file') and Path(mesh.get('file')).is_file(), \
             f'{config}: missing MJCF mesh {mesh.get("file")}'
+
+
+def test_variants_use_their_own_body_meshes():
+    names = {config: {Path(mesh.get('file')).name for mesh in process(config).findall('asset/mesh')} for config in CONFIGS}
+    assert 'pantilt_base_100.stl' in names['pt100'] and 'pantilt_base_101.stl' in names['pt101']
+    assert 'pantilt_base_101.stl' not in names['pt100']

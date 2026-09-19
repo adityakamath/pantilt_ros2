@@ -1,20 +1,10 @@
 <?xml version="1.0"?>
-<!-- Parametric PT100/PT101 MJCF assembly (mujoco_ros2_control equivalent of
-     pantilt.module.xacro + pantilt.urdf.xacro): defines the pantilt_body macro, selected by
-     pantilt_config, and when standalone:=true (default) invokes it in worldbody plus a
-     floor/lighting scene.
-
-     Standalone: xacro pantilt.mjcf.xacro pantilt_config:=pt101 > /tmp/pantilt.xml
-     pt_control/launch/pantilt.launch.py runs the same command at launch time.
-
-     Embedded (lekiwi_ros2's base_pantilt.mjcf.xacro): the includer declares its own
-     standalone:=false BEFORE including this file, which wins - xacro takes the first
-     <xacro:arg> declaration of a given name, later ones are ignored - and invokes
-     pantilt_body itself at its own mount point. Without this the worldbody+scene block
-     below would duplicate the whole assembly. -->
+<!-- Parametric PT100/PT101 MJCF library (mujoco_ros2_control equivalent of pantilt.module.xacro):
+     defines the pantilt_body macro, selected by pantilt_config. pt.mjcf.xacro fixes it to the
+     world for standalone use; scenes come from mjcf/scenes and are composed by
+     build_mujoco_models.py, which also syncs the numbers below from the URDF. -->
 <mujoco xmlns:xacro="http://www.ros.org/wiki/xacro" model="pantilt">
   <xacro:arg name="pantilt_config" default="pt101"/>
-  <xacro:arg name="standalone" default="true"/>
   <xacro:property name="pantilt_config" value="$(arg pantilt_config)"/>
 
   <!-- xacro:include, not a plain <include> - pantilt_shared.xml's mesh paths use $(find),
@@ -88,35 +78,4 @@
       </body>
     </body>
   </xacro:macro>
-
-  <!-- Compares $(arg standalone) directly, not via a bridged <xacro:property> - xacro
-       auto-coerces "true"/"false" property values to Python bool, breaking a naive
-       string comparison. -->
-  <xacro:if value="${'$(arg standalone)' == 'true'}">
-    <worldbody>
-      <xacro:pantilt_body/>
-    </worldbody>
-
-    <statistic center="0.05 0 0.1" extent="0.4"/>
-
-    <visual>
-      <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
-      <rgba haze="0.15 0.25 0.35 1"/>
-      <global azimuth="45" elevation="-20"/>
-    </visual>
-
-    <asset>
-      <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
-      <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
-        markrgb="0.8 0.8 0.8" width="300" height="300"/>
-      <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
-    </asset>
-
-    <worldbody>
-      <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
-      <!-- Non-colliding - this is a bracket meant to bolt to something, not a floor-standing
-           part; its base mesh legitimately extends below the mount plane. -->
-      <geom name="floor" size="0 0 0.05" type="plane" material="groundplane" contype="0" conaffinity="0"/>
-    </worldbody>
-  </xacro:if>
 </mujoco>
