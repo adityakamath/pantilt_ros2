@@ -1,9 +1,11 @@
 """Launch-file structure checks for the simulation arguments: no ROS graph, no nodes started."""
 import importlib.util
 from pathlib import Path
+import re
 
 from launch.actions import DeclareLaunchArgument
 import pytest
+import yaml
 
 REPOSITORY = Path(__file__).resolve().parents[2]
 
@@ -45,3 +47,19 @@ def test_control_launch_loads_the_plugin_config_from_pt_mujoco():
     source = (REPOSITORY / 'pt_control/launch/pantilt.launch.py').read_text()
     assert '{pkg_mujoco}/config/mujoco_ros2_control_plugins.yaml' in source
     assert 'pt_mujoco.build_mujoco_models' in source
+
+
+def test_servo_profile_keys_are_set_in_range_and_match_the_modules_defaults():
+    config = yaml.safe_load((REPOSITORY / 'pt_control/config/urdf_config.yaml').read_text())
+    macro = (REPOSITORY / 'pt_description/urdf/pantilt.joints.xacro').read_text()
+    for key in ('internal_max_vel', 'internal_max_acc', 'internal_acc_coeff'):
+        assert isinstance(config[key], int) and 0 <= config[key] <= 254, key
+        # The explicit tunable values start out equal to the module's built-in defaults.
+        assert re.search(rf'^\s*{key}:={config[key]}\s*$', macro, re.M), key
+
+
+def test_control_launch_passes_the_servo_profile_to_the_urdf():
+    source = (REPOSITORY / 'pt_control/launch/pantilt.launch.py').read_text()
+    for key in ('internal_max_vel', 'internal_max_acc', 'internal_acc_coeff'):
+        assert f"{key}:={{_cfg[\"{key}\"]}}" in source, key
+

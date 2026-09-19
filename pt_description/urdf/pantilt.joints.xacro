@@ -19,6 +19,10 @@
       internal_max_vel      — EEPROM VMax cap (addr 84), written per joint
       internal_max_acc      — EEPROM AMax cap (addr 85), written per joint
       internal_acc_coeff    — EEPROM KAcc coefficient (addr 86), written per joint
+      The internal_* defaults (65/50/0, near the STS3215 firmware's own ~68/~50/1) give the slow,
+      smooth motion this mechanism is meant to have. They are the module's own tuning, not a
+      per-host setting: the wheels' 254/254/100 makes the pan-tilt accelerate fast enough to draw
+      the current that crashed the Pi. A host may still pass different values to this macro.
   -->
   <xacro:macro name="pantilt_joints" params="
       shoulder_pan_motor_id:=1
@@ -30,9 +34,9 @@
       shoulder_pan_upper:=1.5708
       tilt_joint_lower:=-1.5708
       tilt_joint_upper:=1.5708
-      internal_max_vel:=254
-      internal_max_acc:=254
-      internal_acc_coeff:=100
+      internal_max_vel:=65
+      internal_max_acc:=50
+      internal_acc_coeff:=0
       ros2_control_hardware_type:=real">
 
     <!-- 85% of hardware max — 15% safety margin; motor firmware handles profiling -->

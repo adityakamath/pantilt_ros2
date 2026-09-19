@@ -8,6 +8,12 @@
   <xacro:arg name="use_sync_write"         default="true"/>
   <xacro:arg name="sts3215_max_vel_steps" default="3400"/>   <!-- STS3215=3400, STS3032=2900, STS3235=3400 -->
   <xacro:arg name="proportional_vel_max"   default="0"/>      <!-- [0-max_velocity_steps]; 0 = each joint uses commanded velocity -->
+  <!-- Servo EEPROM profile (0-254 each, written per joint at start-up). Defaults match
+       pantilt.joints.xacro's macro defaults (the slow, smooth profile); pt_control's
+       urdf_config.yaml sets them explicitly so they can be tuned without editing xacro. -->
+  <xacro:arg name="internal_max_vel"       default="65"/>
+  <xacro:arg name="internal_max_acc"       default="50"/>
+  <xacro:arg name="internal_acc_coeff"     default="0"/>
   <!-- Motor IDs, step-centering, and joint limits are NOT xacro:args here - they're
        physical-calibration constants for this mechanism (motor wiring, servo centering),
        not per-deployment connection settings, so pantilt.joints.xacro's macro defaults are
@@ -77,7 +83,10 @@
 
     <xacro:pantilt_joints
         sts3215_max_vel_steps="${sts3215_max_vel_steps}"
-        ros2_control_hardware_type="$(arg ros2_control_hardware_type)"/>
+        ros2_control_hardware_type="$(arg ros2_control_hardware_type)"
+        internal_max_vel="$(arg internal_max_vel)"
+        internal_max_acc="$(arg internal_max_acc)"
+        internal_acc_coeff="$(arg internal_acc_coeff)"/>
   </ros2_control>
 
 </robot>

@@ -4,7 +4,6 @@
 <!-- |    EDITING THIS FILE BY HAND IS NOT RECOMMENDED                                 | -->
 <!-- =================================================================================== -->
 <robot name="pantilt">
-  <!-- [0-max_velocity_steps]; 0 = each joint uses commanded velocity -->
   <!-- Motor IDs, step-centering, and joint limits are NOT xacro:args here - they're
        physical-calibration constants for this mechanism (motor wiring, servo centering),
        not per-deployment connection settings, so pantilt.joints.xacro's macro defaults are
@@ -36,9 +35,9 @@
       <param name="max_velocity_steps">3400</param>
       <param name="max_velocity">4.433204476989503</param>
       <param name="position_center_steps">2048</param>
-      <param name="internal_max_vel">254</param>
-      <param name="internal_max_acc">254</param>
-      <param name="internal_acc_coeff">100</param>
+      <param name="internal_max_vel">65</param>
+      <param name="internal_max_acc">50</param>
+      <param name="internal_acc_coeff">0</param>
       <command_interface name="position"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>
@@ -58,9 +57,9 @@
       <param name="max_velocity_steps">3400</param>
       <param name="max_velocity">4.433204476989503</param>
       <param name="position_center_steps">2048</param>
-      <param name="internal_max_vel">254</param>
-      <param name="internal_max_acc">254</param>
-      <param name="internal_acc_coeff">100</param>
+      <param name="internal_max_vel">65</param>
+      <param name="internal_max_acc">50</param>
+      <param name="internal_acc_coeff">0</param>
       <command_interface name="position"/>
       <state_interface name="position"/>
       <state_interface name="velocity"/>

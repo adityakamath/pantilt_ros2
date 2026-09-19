@@ -109,3 +109,17 @@ def test_ros2_control_hardware_plugin_matches_type(pantilt_config, hardware_type
     plugin = root.find('ros2_control/hardware/plugin')
     assert plugin is not None, f'{pantilt_config}/{hardware_type}: no <plugin> emitted'
     assert plugin.text == _HARDWARE_PLUGINS[hardware_type]
+
+
+# ── servo tuning owned by the module ────────────────────────────────────────
+
+@pytest.mark.parametrize('pantilt_config', _CONFIGS)
+def test_internal_tuning_defaults_are_the_slow_smooth_ones(pantilt_config):
+    """65/50/0 come from pantilt.joints.xacro's macro defaults, for standalone and any host."""
+    root = _process_urdf(pantilt_config)
+    joints = root.find('ros2_control').findall('joint')
+    assert {j.get('name') for j in joints} == set(_MOVABLE_JOINTS)
+    for joint in joints:
+        params = {p.get('name'): p.text.strip() for p in joint.findall('param')}
+        assert (params['internal_max_vel'], params['internal_max_acc'], params['internal_acc_coeff']) == \
+            ('65', '50', '0'), joint.get('name')
