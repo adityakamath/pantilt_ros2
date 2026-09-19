@@ -17,4 +17,9 @@ setup(
     zip_safe=False, license='Apache-2.0',
     maintainer='Aditya Kamath (Kamath Robotics)', maintainer_email='adityakamath@live.com',
     description='Pan-tilt MuJoCo simulation infrastructure without a ROS runtime requirement',
+    entry_points={'console_scripts': [
+        'build_mujoco_models = pt_mujoco.build_mujoco_models:main',
+        'mujoco_preview = pt_mujoco.mujoco_preview:main',
+        'benchmark_mujoco = pt_mujoco.benchmark_mujoco:main',
+    ]},
 )

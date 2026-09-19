@@ -1,0 +1,12 @@
+# Simulation-only approximations. Not a conversion of servo EEPROM registers.
+physics:
+  timestep: 0.002
+  integrator: implicitfast
+  iterations: 60
+actuators:
+  # Uncalibrated STS3215 pan/tilt servo approximation; overwrites the MJCF default class at build time.
+  pantilt:
+    position_gain: 50.0
+    damping_ratio: 1.5
+    armature: 0.1
+    frictionloss: 0.1

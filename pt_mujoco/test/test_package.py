@@ -29,3 +29,22 @@ def test_share_override(monkeypatch, tmp_path):
     monkeypatch.setenv('PT_DESCRIPTION_SHARE', str(tmp_path / 'missing'))
     with pytest.raises(FileNotFoundError):
         package_share('pt_description')
+
+
+def test_explicit_paths_do_not_require_package_discovery(monkeypatch, tmp_path):
+    pytest.importorskip('mujoco')
+    pytest.importorskip('xacro')
+    from pt_mujoco import build_mujoco_models as builder
+
+    def unavailable(name):
+        raise AssertionError(f'Unexpected package lookup: {name}')
+    monkeypatch.setattr(builder, 'package_share', unavailable)
+    result = builder.build('pt101', tmp_path / 'model.xml', absolute=True,
+                           control_dir=ROOT.parent / 'pt_control', description_dir=ROOT.parent / 'pt_description')
+    assert result.is_file()
+
+
+def test_dependencies_do_not_point_back_to_control():
+    for root in (ROOT, ROOT.parent / 'pt_description'):
+        package = ET.parse(root / 'package.xml').getroot()
+        assert 'pt_control' not in [entry.text for entry in package if 'depend' in entry.tag]

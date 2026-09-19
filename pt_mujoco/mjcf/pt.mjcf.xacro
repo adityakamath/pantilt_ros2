@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!-- Pan-tilt payload MJCF entry point (mujoco_ros2_control equivalent of pt_description's
+     pantilt.urdf.xacro): the pantilt_body macro from pantilt.mjcf.xacro fixed to the world
+     origin, robot only. build_mujoco_models.py composes a separate scene (mjcf/scenes) and
+     syncs frames, meshes, inertias and limits from the URDF. -->
+<mujoco xmlns:xacro="http://www.ros.org/wiki/xacro" model="pantilt">
+  <xacro:arg name="pantilt_config" default="pt101"/>
+  <!-- Declared BEFORE the include (xacro keeps the first declaration) so the library does not
+       add its own worldbody and scene on top of this one. -->
+  <xacro:arg name="standalone" default="false"/>
+
+  <xacro:include filename="$(find pt_mujoco)/mjcf/pantilt.mjcf.xacro"/>
+
+  <worldbody>
+    <xacro:pantilt_body/>
+  </worldbody>
+</mujoco>
