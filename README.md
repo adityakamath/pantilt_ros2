@@ -104,7 +104,7 @@ Each motor has a centre position, in raw steps (0–4095), that maps to 0 rad in
 | `sts_serial_port`  | `pt_control`, `pt_bringup` | from yaml       | Serial port; empty uses the value in `urdf_config.yaml` |
 | `use_mock`         | `pt_control`, `pt_bringup` | from yaml       | Run with simulated motors and no hardware |
 | `pantilt_config`   | `pt_control`, `pt_bringup` | `pt101`         | Mesh variant: `pt100` or `pt101` |
-| `diagnostics`      | `pt_control`, `pt_bringup` | `true`          | Publish motor temperature, voltage and current |
+| `diagnostics`      | `pt_control`, `pt_bringup` | `false`         | Publish motor temperature, voltage and current |
 | `pointcloud`       | `pt_bringup`               | `false`         | Aligned depth plus a compressed point cloud (higher CPU load) |
 | `octomap`          | `oakd.launch.py`           | `false`         | Build a persistent 3D octree from the point cloud (needs `pointcloud:=true`) |
 | `tf_parent_frame`  | `oakd.launch.py`           | `tilt_link`     | TF frame the camera is mounted to; change it to use the camera on a robot without the pan-tilt |
