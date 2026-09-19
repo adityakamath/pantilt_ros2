@@ -16,10 +16,6 @@ URDF/xacro model of the Pan Tilt mechanisms - `pt100` and `pt101` (two STS3215 s
 | `meshes/` | STL files for the base, shoulder, motors and camera |
 | `launch/urdf.launch.py` | Starts `robot_state_publisher` with the standalone URDF |
 
-## Requirements
-
-ROS 2 Kilted with `xacro` and `robot_state_publisher`, which come with the ROS 2 desktop packages. There are no other dependencies.
-
 ## Running
 
 ```bash

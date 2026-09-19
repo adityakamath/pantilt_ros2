@@ -16,7 +16,7 @@ System-level launch files for the Pan Tilt mechanism (`pt100`, `pt101`): the ful
 
 ## Requirements
 
-ROS 2 Kilted with `depthai-ros` and `octomap_server` at runtime, plus `pt_control`. Building the C++ point cloud node needs [cloudini](https://github.com/facontidavide/cloudini) and `point_cloud_interfaces`, which are not plain apt packages; clone cloudini into the workspace as described in the [repository README](../README.md#installation). On a Raspberry Pi 5 the camera also needs a raised USB current limit (see the [repository README](../README.md#raspberry-pi-5)).
+ROS 2 Kilted with `depthai-ros` and `octomap_server` at runtime, plus `pt_control`. Building the C++ point cloud node needs [cloudini](https://github.com/facontidavide/cloudini) and `point_cloud_interfaces`, which are not plain apt packages; clone cloudini into the workspace as described in the [repository README](../README.md#installation). The package has no tests of its own and CI does not build it. On a Raspberry Pi 5 the camera also needs a raised USB current limit (see the [repository README](../README.md#raspberry-pi-5)).
 
 ## Running
 
@@ -76,7 +76,3 @@ DEPTHAI_DEBUG=1 ros2 launch pt_bringup pantilt.launch.py
 ## Using it on another robot
 
 To use the camera on a robot without the pan-tilt, launch `oakd.launch.py` with `tf_parent_frame` set to that robot's camera mount link. `pantilt.launch.py` runs its own controller manager, so a robot that shares the servo bus does not include it; see [`pt_control`](../pt_control/README.md#using-it-on-another-robot).
-
-## Tests
-
-This package has no tests of its own, and CI does not build it (cloudini and `depthai-ros` are not plain apt packages).
