@@ -7,16 +7,9 @@ use_sync_write: true
 sts3215_max_vel_steps: 3400
 proportional_vel_max: 0
 
-# Servo EEPROM profile, written to both joints at start-up (0-254; undocumented registers 84-86, no
-# physical units). 65/50/0 is the slow, smooth motion this mechanism is meant to have, and the same
-# as the module's built-in defaults; change them here to experiment. A host robot on a shared bus
-# (lekiwi_ros2) reads these three values too, so they apply to the pan-tilt wherever it is mounted.
+# Servo EEPROM profile (0-254, no physical units); 65/50/0 is slow and smooth, also read by host robots
 internal_max_vel: 65
 internal_max_acc: 50
 internal_acc_coeff: 0
 
-# Motor IDs, step-centering, and joint limits are not here - they're physical-calibration
-# constants for this mechanism, baked directly into pantilt.joints.xacro's macro defaults
-# (single source of truth), the same way so101.control.xacro/so100.control.xacro in
-# so_arm_ros2 hardcode motor IDs/joint limits rather than sourcing them from an external
-# launch-time YAML.
+# Motor IDs, centres and joint limits live in pantilt.joints.xacro's macro defaults

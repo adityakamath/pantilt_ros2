@@ -1,12 +1,4 @@
-# mujoco_ros2_control_plugins config, loaded by pt_control/launch/pantilt.launch.py when
-# ros2_control_hardware_type:=mujoco.
-#
-# CameraPlugin publishes the oak_rgb <camera> (mjcf/oakd_s2_subtree.xml) as RGB-D + camera_info.
-# Topic names match the real depthai_ros_driver's exactly (/oak/rgb/image_raw, /oak/stereo/image_raw)
-# so consumers do not need to know whether the camera is real or simulated. The image frame is an
-# optical frame (z forward) so viewers such as Foxglove draw the frustum correctly; the launch file
-# publishes its static TF from oak_link. camera_publish_rate matches the real RGB pipeline's 30 Hz
-# (pt_bringup/config/oakd_vio.yaml); headless software rendering on a Raspberry Pi cannot sustain it.
+# Loaded by pt_control when ros2_control_hardware_type:=mujoco; topics match the real depthai driver.
 /**:
   ros__parameters:
     mujoco_plugins:
@@ -18,6 +10,6 @@
           info_topic: /oak/rgb/camera_info
           image_topic: /oak/rgb/image_raw
           depth_topic: /oak/stereo/image_raw
-      # /emergency_stop in the simulation, as sts_hardware_interface provides on the real pan-tilt.
+      # Simulated /emergency_stop
       emergency_stop_plugin:
         type: "mujoco_ros2_plugins/EmergencyStopPlugin"

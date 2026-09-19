@@ -1,14 +1,11 @@
 # Simulation-only approximations. Not a conversion of servo EEPROM registers.
 physics:
   timestep: 0.002
-  # Solves actuator damping implicitly; MuJoCo's docs call it a strict improvement over Euler for
-  # actuator-driven models like this one, at equivalent cost.
+  # Solves actuator damping implicitly
   integrator: implicitfast
   iterations: 60
 actuators:
-  # BAM-identified STS3215 values (mjcf/sts3215.mjcf.xacro) - sync_payload_parameters() overwrites the
-  # MJCF default class's own values with these at build time, so this is what actually takes effect.
-  # The torque limit is not here: it comes from the URDF effort (12V stall torque, 30 kgf*cm).
+  # BAM-identified STS3215 values, applied over the MJCF defaults at build time (torque limit: URDF effort)
   pantilt:
     position_gain: 42.911886
     velocity_gain: 0.0

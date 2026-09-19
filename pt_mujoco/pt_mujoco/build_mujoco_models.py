@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-"""Generate portable PT100/PT101 pan-tilt MJCFs from shared xacro and pt_description's URDF.
-
-Also used by ROS launch: --absolute keeps mesh paths valid in temporary files.
-Frames, mesh origins, inertias and limits are synced from the URDF, so no offset is copied
-into the MJCF by hand.
-
-Standalone, no install needed: `python3 -m pt_mujoco.build_mujoco_models --variant pt101
---output /tmp/pt.xml`, run from this package's root dir (-m puts the cwd on sys.path).
-After `pip install -e .` (or a colcon build), the same tool is also `build_mujoco_models`
-on PATH / `ros2 run pt_mujoco build_mujoco_models`.
-"""
+"""Generate PT100/PT101 MJCFs from shared xacro and the URDF; run with python3 -m pt_mujoco.build_mujoco_models."""
 import argparse
 from contextlib import contextmanager
 import os
@@ -142,14 +132,7 @@ def sync_velocity_limits(spec, urdf, payload_limits):
 
 
 def build_payload_spec(variant, urdf, payload_limits, description_dir=None):
-    """Return an editable payload spec (world -> pantilt_base_link) with absolute assets.
-
-    `urdf` is any expanded URDF that contains the pan-tilt chain (this package's standalone one, or
-    a host robot's), so the host keeps its own URDF as the source of truth for the payload's frames.
-    A host attaches the spec at its mount frame with MjSpec.attach(), after naming its root default
-    (spec.default.name) as compose_scene does; scenes attach it the same way. Physics options are
-    left to the composed model (configure_physics), not set here.
-    """
+    """Editable payload spec (world -> pantilt_base_link) from any URDF containing the pan-tilt chain."""
     if variant not in VARIANTS:
         raise ValueError(f'Unknown variant: {variant}')
     packages = {'pt_description': Path(description_dir).resolve() if description_dir else package_share('pt_description')}

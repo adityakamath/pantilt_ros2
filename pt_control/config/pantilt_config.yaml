@@ -1,6 +1,4 @@
-# ros2_control controller manager settings and JointStateBroadcaster for the standalone pan-tilt.
-# The position controller's own parameters are in pantilt_controller.yaml (loaded by the spawner) and
-# the joint limits come from the URDF, so a host robot can reuse both without merging this file.
+# Controller manager and joint state broadcaster; the position controller is in pantilt_controller.yaml.
 controller_manager:
   ros__parameters:
     update_rate: 50  # Hz
