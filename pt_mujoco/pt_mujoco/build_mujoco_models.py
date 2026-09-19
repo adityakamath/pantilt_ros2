@@ -103,7 +103,7 @@ def sync_payload_geometry(spec, urdf):
 
 
 def joint_limits(control):
-    """The controller_manager joint_limits block a host's control config gives the payload."""
+    """Optional joint limit overrides for the payload from the control config ({} when none are set)."""
     settings = yaml.safe_load((control / 'config/pantilt_config.yaml').read_text())
     return settings['controller_manager']['ros__parameters'].get('joint_limits', {})
 
