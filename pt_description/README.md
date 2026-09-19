@@ -1,6 +1,6 @@
 # pt_description
 
-URDF/xacro model of the Pan Tilt mechanisms - PT100 and PT101 (two STS3215 servos and an OAK-D S2 camera), its meshes, and a launch file for viewing it. The same files describe the standalone pan-tilt and the module that other robots embed. Everything else in the `pantilt_ros2` repository, including the MuJoCo model, is generated from this description.
+URDF/xacro model of the Pan Tilt mechanisms - `pt100` and `pt101` (two STS3215 servos and an OAK-D S2 camera), its meshes, and a launch file for viewing it. The same files describe the standalone pan-tilt and the module that other robots embed. Everything else in the `pantilt_ros2` repository, including the MuJoCo model, is generated from this description.
 
 ## Contents
 

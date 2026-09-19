@@ -1,6 +1,6 @@
 # pt_control
 
-The `ros2_control` setup for the Pan Tilt 100: controllers, configuration, joystick teleop and the launch file that brings them up on real hardware, in mock mode, or in the MuJoCo simulation.
+The `ros2_control` setup for the Pan Tilt mechanism (`pt100`, `pt101`): controllers, configuration, joystick teleop and the launch file that brings them up on real hardware, in mock mode, or in the MuJoCo simulation.
 
 ## Contents
 

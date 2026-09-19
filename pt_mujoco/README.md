@@ -1,6 +1,6 @@
 # Pan-Tilt MuJoCo
 
-MuJoCo models of the pan-tilt (`pt100`, `pt101`) and its OAK-D S2 camera, generated from the URDF in `pt_description`. The package gives you three ways to use them:
+MuJoCo models of the Pan Tilt mechanism (`pt100`, `pt101`) and its OAK-D S2 camera, generated from the URDF in `pt_description`. The package gives you three ways to use them:
 
 - **Standalone:** a native viewer, a model builder and a benchmark, with no ROS needed.
 - **ROS simulation:** `sim:=true` runs the same controllers and teleop as the real pan-tilt against the model in `mujoco_ros2_control`.
