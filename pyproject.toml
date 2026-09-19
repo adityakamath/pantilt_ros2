@@ -3,11 +3,7 @@ line-length = 99
 target-version = "py312"
 
 [tool.ruff.lint]
-# E, F, W only - deliberately not "I" (import sorting). ament_lint_common (declared as a
-# test_depend in every package here) pulls in ament_flake8, whose bundled import-order
-# plugin uses different rules than ruff's isort-style output - running both would mean
-# every commit fights itself. ament_flake8 stays the source of truth for import order;
-# ruff covers everything else quickly, without a ROS environment.
+# No import sorting (I): ament_flake8 owns import order
 select = ["E", "F", "W"]
 ignore = [
     "E501",  # line length - not enforced here; several pre-existing lines already exceed it
