@@ -229,6 +229,17 @@ base_footprint                  ← standalone root only
 | [`pt_bringup`](pt_bringup/) | Full-system launch, OAK-D S2 driver launch and configuration |
 | [`pt_mujoco`](pt_mujoco/README.md) | MuJoCo model generated from the URDF, camera plugin config, standalone viewer, benchmark |
 
+### Files you may want to edit
+
+| File | What it sets |
+|------|--------------|
+| [`pt_control/config/urdf_config.yaml`](pt_control/config/urdf_config.yaml) | Serial port, baud rate, mock mode, servo speed profile |
+| [`pt_control/config/teleop_config.yaml`](pt_control/config/teleop_config.yaml) | Joystick buttons and axes |
+| [`pt_control/config/pantilt_controller.yaml`](pt_control/config/pantilt_controller.yaml) | The position controller (joints and interface); rarely changed |
+| [`pt_description/urdf/pantilt.joints.xacro`](pt_description/urdf/pantilt.joints.xacro) | Motor IDs, centre steps and joint limits (calibration) |
+| [`pt_bringup/config/oakd_vio.yaml`](pt_bringup/config/oakd_vio.yaml), `oakd_vio_pcl.yaml` | Camera resolution, frame rates and VIO settings |
+| [`pt_bringup/config/depthimage_to_laserscan.yaml`](pt_bringup/config/depthimage_to_laserscan.yaml) | Range and height of the `/oak/scan` slice |
+
 ## Troubleshooting
 
 - **Joystick does nothing.** Start `ros2 run joy joy_node`, and hold **L1**; without the deadman button `joy_teleop` publishes nothing.
