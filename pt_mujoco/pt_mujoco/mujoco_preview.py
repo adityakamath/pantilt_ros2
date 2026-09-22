@@ -21,8 +21,18 @@ class KeyboardControl:
         self.model = model
         self.control = control or PayloadControl(model)
         self.payload_limits = self.control.payload_limits
+        self.estop = False
+
+    def set_estop(self, active):
+        """Match mujoco_ros2_plugins/EmergencyStopPlugin's real behavior for position
+        servos: hold whatever angle the joint had when the stop was enabled. No separate
+        freeze action needed - just skip issuing new targets; apply()'s existing slew-rate
+        limiting keeps holding the last one on its own."""
+        self.estop = active
 
     def update(self, data, held, dt):
+        if self.estop:
+            return
         held = {ord(chr(k).upper()) if 97 <= k <= 122 else k for k in held}
         tilt = int(glfw.KEY_UP in held) - int(glfw.KEY_DOWN in held)
         pan = int(glfw.KEY_LEFT in held) - int(glfw.KEY_RIGHT in held)
@@ -32,7 +42,7 @@ class KeyboardControl:
 
 class HeldKeys:
     """Attach GLFW key callbacks on the viewer's UI thread; other events go to MuJoCo's callbacks."""
-    BOUND = {glfw.KEY_UP, glfw.KEY_DOWN, glfw.KEY_LEFT, glfw.KEY_RIGHT, *map(ord, 'XP')}
+    BOUND = {glfw.KEY_UP, glfw.KEY_DOWN, glfw.KEY_LEFT, glfw.KEY_RIGHT, *map(ord, 'XPE')}
 
     def __init__(self):
         self.lock = Lock()
@@ -78,7 +88,7 @@ class HeldKeys:
                 self.held.discard(key)
             elif action == glfw.PRESS:
                 self.held.add(key)
-        if action == glfw.PRESS and key in (ord('P'), ord('X')):
+        if action == glfw.PRESS and key in (ord('P'), ord('X'), ord('E')):
             self.events.put(key)
 
     def on_key(self, window, key, scancode, action, mods):
@@ -95,7 +105,7 @@ class HeldKeys:
             self.previous_focus(window, focused)
 
 
-CONTROLS = 'Left/Right: pan | Up/Down: tilt | X: reset | P: pause'
+CONTROLS = 'Left/Right: pan | Up/Down: tilt | E: E-Stop | X: reset | P: pause'
 
 
 def main():
@@ -143,9 +153,13 @@ def main():
                         keys.clear()
                         simulation.stop()
                     elif key in (ord('X'), ord('x')):
+                        keyboard.set_estop(False)  # a reset relatches the e-stop, like real hardware
                         simulation.stop()
                         keys.clear()
                         simulation.reset()
+                    elif key in (ord('E'), ord('e')):
+                        keyboard.set_estop(not keyboard.estop)
+                        keys.clear()
                     elif key == 'focus_lost':
                         simulation.stop()
                 if not paused:
@@ -154,10 +168,11 @@ def main():
                         keyboard.update(data, held, model.opt.timestep)
                         simulation.step()
             pan, tilt = simulation.positions()
+            status = 'E-STOP' if keyboard.estop else ('PAUSED' if paused else 'RUNNING')
             viewer.set_texts([(mujoco.mjtFontScale.mjFONTSCALE_100,
                                mujoco.mjtGridPos.mjGRID_BOTTOMLEFT,
                                f'{Path(path).stem} | {data.time:.2f} s | pan {pan:+.2f} tilt {tilt:+.2f} rad | '
-                               f'{"PAUSED" if paused else "RUNNING"}\n' + CONTROLS, '')])
+                               f'{status}\n' + CONTROLS, '')])
             viewer.sync()
             time.sleep(max(0, period - (time.monotonic() - start)))
 
