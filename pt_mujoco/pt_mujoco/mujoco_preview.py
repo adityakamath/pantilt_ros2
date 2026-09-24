@@ -24,15 +24,16 @@ class KeyboardControl:
         self.estop = False
 
     def set_estop(self, active):
-        """Match mujoco_ros2_plugins/EmergencyStopPlugin's real behavior for position
-        servos: hold whatever angle the joint had when the stop was enabled. No separate
-        freeze action needed - just skip issuing new targets; apply()'s existing slew-rate
-        limiting keeps holding the last one on its own."""
+        """Match mujoco_ros2_plugins/EmergencyStopPlugin's real behavior: torque disabled
+        on both motors via mjDSBL_ACTUATION, same as sts_hardware_interface's real
+        EnableTorque(motor, 0). The pan-tilt drifts freely rather than holding position."""
         self.estop = active
+        if active:
+            self.model.opt.disableflags |= mujoco.mjtDisableBit.mjDSBL_ACTUATION
+        else:
+            self.model.opt.disableflags &= ~int(mujoco.mjtDisableBit.mjDSBL_ACTUATION)
 
     def update(self, data, held, dt):
-        if self.estop:
-            return
         held = {ord(chr(k).upper()) if 97 <= k <= 122 else k for k in held}
         tilt = int(glfw.KEY_UP in held) - int(glfw.KEY_DOWN in held)
         pan = int(glfw.KEY_LEFT in held) - int(glfw.KEY_RIGHT in held)
@@ -88,7 +89,7 @@ class HeldKeys:
                 self.held.discard(key)
             elif action == glfw.PRESS:
                 self.held.add(key)
-        if action == glfw.PRESS and key in (ord('P'), ord('X'), ord('E')):
+        if action == glfw.PRESS and key in (ord('P'), ord('X'), glfw.KEY_SPACE):
             self.events.put(key)
 
     def on_key(self, window, key, scancode, action, mods):
@@ -105,7 +106,7 @@ class HeldKeys:
             self.previous_focus(window, focused)
 
 
-CONTROLS = 'Left/Right: pan | Up/Down: tilt | E: E-Stop | X: reset | P: pause'
+CONTROLS = 'Left/Right: pan | Up/Down: tilt | Space: E-Stop | X: reset | P: pause'
 
 
 def main():
@@ -153,11 +154,11 @@ def main():
                         keys.clear()
                         simulation.stop()
                     elif key in (ord('X'), ord('x')):
-                        keyboard.set_estop(False)  # a reset relatches the e-stop, like real hardware
+                        keyboard.set_estop(False)  # release first, or reset()'s settle step can't move the joints
                         simulation.stop()
                         keys.clear()
                         simulation.reset()
-                    elif key in (ord('E'), ord('e')):
+                    elif key == glfw.KEY_SPACE:
                         keyboard.set_estop(not keyboard.estop)
                         keys.clear()
                     elif key == 'focus_lost':

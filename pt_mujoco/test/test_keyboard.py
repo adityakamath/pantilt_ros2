@@ -65,6 +65,14 @@ def test_reset_pause_are_edges_not_repeat():
         assert keys.events.empty()
 
 
+def test_space_bar_is_bound_and_queued_as_an_event():
+    keys = HeldKeys()
+    assert glfw.KEY_SPACE in keys.BOUND
+    keys.on_key(None, glfw.KEY_SPACE, 0, glfw.PRESS, 0)
+    assert keys.events.get_nowait() == glfw.KEY_SPACE
+    assert keys.snapshot() == {glfw.KEY_SPACE}
+
+
 def test_bootstrap_installs_release_and_focus_callbacks(monkeypatch):
     keys, window = HeldKeys(), object()
     installed = {}
@@ -95,3 +103,17 @@ def test_motor_limit_is_baked_into_xml(model):
     expected = 2890 * 2 * np.pi / 4096
     for name in ('shoulder_pan_joint', 'tilt_joint'):
         assert model.numeric('velocity_limit_' + name).data[0] == pytest.approx(expected, abs=1e-5)
+
+
+def test_estop_disables_actuation_for_every_motor_rather_than_holding(model):
+    """Matches sts_hardware_interface's real EnableTorque(motor, 0): torque off for
+    every motor, no position hold - not the model's own local ctrl bookkeeping."""
+    control = KeyboardControl(model)
+    try:
+        assert model.opt.disableflags & mujoco.mjtDisableBit.mjDSBL_ACTUATION == 0
+        control.set_estop(True)
+        assert model.opt.disableflags & mujoco.mjtDisableBit.mjDSBL_ACTUATION
+        control.set_estop(False)
+        assert model.opt.disableflags & mujoco.mjtDisableBit.mjDSBL_ACTUATION == 0
+    finally:
+        model.opt.disableflags &= ~int(mujoco.mjtDisableBit.mjDSBL_ACTUATION)

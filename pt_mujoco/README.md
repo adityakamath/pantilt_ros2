@@ -37,7 +37,7 @@ python3 -m pt_mujoco.build_mujoco_models --variant pt101 --output /tmp/pt.xml --
 python3 -m pt_mujoco.benchmark_mujoco --output step_response.json
 ```
 
-In the viewer, click the window first, then use Left/Right for pan, Up/Down for tilt, E to toggle the emergency stop (holds the current pan/tilt position, matching `mujoco_ros2_plugins/EmergencyStopPlugin`'s real behavior for position servos), X to reset and P to pause. The same tools are installed as commands (`ros2 run pt_mujoco <tool>` or `pip install -e .`).
+In the viewer, click the window first, then use Left/Right for pan, Up/Down for tilt, Space to toggle the emergency stop (disables torque on both motors, matching `mujoco_ros2_plugins/EmergencyStopPlugin`'s real behavior - the pan-tilt drifts freely rather than holding), X to reset and P to pause. The same tools are installed as commands (`ros2 run pt_mujoco <tool>` or `pip install -e .`).
 
 Always build models with `build_mujoco_models` rather than plain xacro: it takes frames, mesh origins, inertias and joint limits from the URDF. `--scene` selects the environment (`flat`, `none` or a scene file). With no arguments it regenerates the committed `mjcf/pt100_oakd_s2.xml` and `mjcf/pt101_oakd_s2.xml`, which you should do after any change to the URDF, the config or the MJCF.
 
