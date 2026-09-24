@@ -42,7 +42,7 @@ class KeyboardControl:
 
 class HeldKeys:
     """Attach GLFW key callbacks on the viewer's UI thread; other events go to MuJoCo's callbacks."""
-    BOUND = {glfw.KEY_UP, glfw.KEY_DOWN, glfw.KEY_LEFT, glfw.KEY_RIGHT, *map(ord, 'XPE')}
+    BOUND = {glfw.KEY_UP, glfw.KEY_DOWN, glfw.KEY_LEFT, glfw.KEY_RIGHT, glfw.KEY_SPACE, *map(ord, 'XP')}
 
     def __init__(self):
         self.lock = Lock()
