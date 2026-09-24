@@ -76,7 +76,7 @@ ros2 topic pub /pantilt_controller/commands std_msgs/msg/Float64MultiArray "{dat
 | `/oak/rgb/image_raw`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` | Simulated OAK-D S2 camera in frame `oak_rgb_camera_optical_frame`. The image is upside down, like the real, inverted camera mount |
 | `/oak/rgb/image_raw/compressed` | Compressed version of the RGB image |
 | `/oak/scan` | Laser scan sliced from the depth image, as on the real bringup |
-| `/emergency_stop` (`std_srvs/SetBool`) | While enabled the pan-tilt holds its position and ignores commands; releasing it hands control back |
+| `/emergency_stop` (`std_srvs/SetBool`) | While enabled, torque is disabled on both motors and commands are ignored, matching the real robot's `sts_hardware_interface`; the pan-tilt drifts freely rather than holding position; releasing it hands control back |
 
 The camera is set to the real pipeline's 30 Hz. Headless rendering on a Raspberry Pi 5 delivered about 19 Hz, with the simulation still running in real time.
 
