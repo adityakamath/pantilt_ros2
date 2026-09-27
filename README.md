@@ -6,7 +6,7 @@
 [![Ask DeepWiki (Experimental)](https://deepwiki.com/badge.svg)](https://deepwiki.com/adityakamath/pantilt_ros2)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-ROS 2 software stack for a 2-DOF pan-tilt camera mount built from [SO-100 or SO-101](https://github.com/TheRobotStudio/SO-ARM100) parts, two [Feetech STS3215](https://www.feetechrc.com/2020-05-13_56655.html) servo motors and an [OAK-D S2](https://docs.luxonis.com/hardware/products/OAK-D%20S2) camera. It provides position control with joystick teleop, visual-inertial odometry (VIO) bringup, a MuJoCo simulation, and an embeddable xacro module for other robots such as [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2).
+ROS 2 software stack for a 2-DOF pan-tilt camera mount built from [SO-100 or SO-101](https://github.com/TheRobotStudio/SO-ARM100) parts, two [Feetech STS3215](https://www.feetechrc.com/2020-05-13_56655.html) servo motors and an [OAK-D S2](https://docs.luxonis.com/hardware/products/OAK-D%20S2) camera, with an Orbbec Gemini 2 geometry option. It provides position control with joystick teleop, visual-inertial odometry (VIO) bringup, a MuJoCo simulation, and an embeddable xacro module for other robots such as [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2).
 
 <p align="center">
   <img width="500" height="575" alt="Screenshot 2026-04-28 at 15 56 11" src="https://github.com/user-attachments/assets/c9520454-7523-44a7-bcb3-8b6428437759" />
@@ -16,7 +16,7 @@ ROS 2 software stack for a 2-DOF pan-tilt camera mount built from [SO-100 or SO-
 
 | Package | Purpose |
 |---------|----------|
-| [`pt_description`](pt_description/) | URDF/xacro model (standalone entry, embeddable macros, `pt100.urdf` and `pt101.urdf` pre-generated), meshes, `urdf.launch.py` |
+| [`pt_description`](pt_description/) | URDF/xacro model (standalone entry, embeddable macros, all PT100/PT101 × OAK-D S2/Gemini 2 combinations pre-generated), meshes, `urdf.launch.py` |
 | [`pt_control`](pt_control/) | `ros2_control` setup and configuration (`urdf_config.yaml`, `pantilt_controller.yaml`, `teleop_config.yaml`) and `pantilt.launch.py` |
 | [`pt_bringup`](pt_bringup/) | Full-system launch, OAK-D S2 driver launch and configuration |
 | [`pt_mujoco`](pt_mujoco/) | MuJoCo model generated from the URDF, camera plugin config, standalone viewer, benchmark |
@@ -28,9 +28,9 @@ ROS 2 software stack for a 2-DOF pan-tilt camera mount built from [SO-100 or SO-
 | Pan motor    | [Feetech STS3215](https://www.feetechrc.com/2020-05-13_56655.html), motor ID `1`                    |
 | Tilt motor   | Feetech STS3215, motor ID `2`                                                                       |
 | Servo driver | [Waveshare Bus Servo Adapter A](https://www.waveshare.com/bus-servo-adapter-a.htm)                  |
-| Camera       | [OAK-D S2](https://docs.luxonis.com/hardware/products/OAK-D%20S2)                                   |
+| Camera | OAK-D S2 (driver supported) or Orbbec Gemini 2 (geometry and simulation; real driver pending) |
 | Structure    | 3D printed base and shoulder parts from [SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100) or [SO-ARM101](https://github.com/TheRobotStudio/SO-ARM101) |
-| Camera mount | 3D printed OAK-D S2 bracket (STL in [`pt_description/meshes/`](pt_description/meshes/))             |
+| Camera mount | 3D printed camera-specific bracket (STL in [`pt_description/meshes/`](pt_description/meshes/))             |
 
 Both motors share one serial bus at 1 Mbaud, connected through the Waveshare driver. **PT100** uses the SO-ARM100 base and shoulder parts and **PT101** uses the SO-ARM101 ones; you pick the variant with the `pantilt_config` launch argument (`pt101`, the default, is recommended).
 
@@ -113,6 +113,7 @@ The button mapping is in [`pt_control/config/teleop_config.yaml`](pt_control/con
 |--------------------|----------------------------|-----------------|-------------|
 | `sts_serial_port`  | `pt_control`, `pt_bringup` | from yaml       | Serial port; empty uses the value in `urdf_config.yaml` |
 | `use_mock`         | `pt_control`, `pt_bringup` | from yaml       | Run with simulated motors and no hardware |
+| `camera_config` | `pt_control`, `pt_bringup` | `oakd_s2` | `oakd_s2` or `gemini2`; Gemini real driver not integrated |
 | `pantilt_config`   | `pt_control`, `pt_bringup` | `pt101`         | Mesh variant: `pt100` or `pt101` |
 | `diagnostics`      | `pt_control`, `pt_bringup` | `false`         | Publish motor temperature, voltage and current |
 | `pointcloud`       | `pt_bringup`               | `false`         | Aligned depth plus a compressed point cloud (higher CPU load) |
@@ -236,7 +237,7 @@ base_footprint                  ← standalone root only
 └── pantilt_base_link           ← mount to the host robot when embedded
     └── shoulder_link           ← shoulder_pan_joint (±90°)
         └── tilt_link           ← tilt_joint (±90°)
-            └── oak_link        ← OAK-D S2 optical centre
+            └── oak_link        ← compatibility camera frame (Gemini optical calibration pending)
                 └── oak_imu_frame
 ```
 
@@ -250,3 +251,35 @@ base_footprint                  ← standalone root only
 ## License
 
 Apache License 2.0 — see [LICENSE](LICENSE).
+
+## Camera mesh variants
+
+Camera selection is independent of the PT100/PT101 body selection:
+
+```bash
+ros2 launch pt_bringup pantilt.launch.py pantilt_config:=pt101 camera_config:=gemini2
+```
+
+`camera_config` accepts `oakd_s2` (the default) or `gemini2`, and is also available
+on `pt_control`'s `pantilt.launch.py` and the description visualization launch.
+Both cameras can be combined with either `pantilt_config:=pt100` or `pt101`.
+The MuJoCo builder accepts `--camera gemini2`; the control launch forwards the
+selection when generating its simulation model.
+
+Gemini 2 uses its own `gemini2.stl` and `tilt_joint_gemini2.stl` meshes.
+The Gemini tilt mount is centered along the motor shaft, leaving approximately
+0.225 mm clearance at each mounting face. The camera follows the same lateral
+shift so its mounting holes remain aligned with the bracket. The camera has a Gemini-specific mount offset, seating its rear face on
+the bracket. The two camera mounting holes have 45 mm spacing. The Gemini body is rotated
+180 degrees about its front-to-back mesh axis to mount upright.
+Existing `oak_link`/IMU frame names and simulated camera settings remain for
+compatibility; they are not calibrated Gemini optical/IMU properties. Real Gemini
+bringup skips the OAK driver and does not yet launch an Orbbec driver. Camera
+selection is not yet exposed by the parent LeKiwi bringup.
+
+The MuJoCo source selects `pt_mujoco/mjcf/oakd_s2_subtree.xml` or
+`pt_mujoco/mjcf/gemini2_subtree.xml` for the camera-specific tilt assembly. The
+shared `pt_description/urdf/camera.module.xacro` supplies the URDF geometry.
+Generated assets are `pt{100,101}_{oakd_s2,gemini2}.urdf` and the corresponding
+`.xml` models. See [URDF regeneration](pt_description/README.md#regenerating-the-pre-built-urdfs)
+and [MuJoCo regeneration](pt_mujoco/README.md#gemini-2-models).

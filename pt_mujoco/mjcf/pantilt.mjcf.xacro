@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <!-- Parametric PT100/PT101 MJCF (pantilt_body macro, selected by pantilt_config); build_mujoco_models.py syncs the numbers from the URDF -->
 <mujoco xmlns:xacro="http://www.ros.org/wiki/xacro" model="pantilt">
+  <xacro:arg name="camera_config" default="oakd_s2"/>
+  <xacro:property name="camera_config" value="$(arg camera_config)"/>
   <xacro:arg name="pantilt_config" default="pt101"/>
   <xacro:property name="pantilt_config" value="$(arg pantilt_config)"/>
 
@@ -56,7 +58,7 @@
         <geom mesh="shoulder_link_mesh" class="collision"
               pos="${shoulder_link_geom_pos}" quat="${shoulder_link_geom_quat}"/>
 
-        <include file="$(find pt_mujoco)/mjcf/oakd_s2_subtree.xml"/>
+        <include file="$(find pt_mujoco)/mjcf/${camera_config}_subtree.xml"/>
       </body>
     </body>
   </xacro:macro>

@@ -1,22 +1,22 @@
 <?xml version="1.0"?>
-<robot name="depthai_camera"
+<robot name="camera"
 	xmlns:xacro="http://ros.org/wiki/xacro">
 
-	<!-- OAK-D S2 camera macro shared by pt100/pt101, with r/g/b/a mesh colour parameters -->
+	<!-- Camera macro shared by PT100/PT101 and OAK-D S2/Gemini 2, with r/g/b/a mesh colour parameters -->
 
-	<xacro:macro name="oakd_s2_camera"
+	<xacro:macro name="camera"
 		params="camera_name parent base_frame 
 											   cam_pos_x cam_pos_y cam_pos_z 
 											   cam_roll cam_pitch cam_yaw 
 											   r:=0.1 g:=0.1 b:=0.1 a:=1.0 simulation:=false 
-											   imu_frame:=oak_imu_frame">
+											   imu_frame:=oak_imu_frame mesh_file:=oakd_s2.stl mesh_yaw:=0">
 
 		<!-- File prefix for mesh location -->
 		<xacro:if value="${simulation}">
-			<xacro:property name="mesh_path" value="file://$(find pt_description)/meshes/oakd_s2.stl" />
+			<xacro:property name="mesh_path" value="file://$(find pt_description)/meshes/${mesh_file}" />
 		</xacro:if>
 		<xacro:unless value="${simulation}">
-			<xacro:property name="mesh_path" value="package://pt_description/meshes/oakd_s2.stl" />
+			<xacro:property name="mesh_path" value="package://pt_description/meshes/${mesh_file}" />
 		</xacro:unless>
 
 		<!-- base_link of the sensor-->
@@ -43,11 +43,11 @@
 		<!-- Device mesh with custom color -->
 		<link name="${camera_name}_model_origin">
 			<visual>
-				<origin xyz="0 0 0" rpy="0 0 0" />
+				<origin xyz="0 0 0" rpy="0 0 ${mesh_yaw}" />
 				<geometry>
 					<mesh filename="${mesh_path}" />
 				</geometry>
-				<material name="mat">
+				<material name="camera_charcoal">
 					<color rgba="${r} ${g} ${b} ${a}" />
 				</material>
 			</visual>

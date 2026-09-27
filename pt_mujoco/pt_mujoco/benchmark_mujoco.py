@@ -12,11 +12,11 @@ from pt_mujoco.build_mujoco_models import VARIANTS, build
 from pt_mujoco.simulation import PAYLOAD, Simulation
 
 
-def benchmark(directory):
+def benchmark(directory, camera_config='oakd_s2'):
     rows = []
     steps = [('pan_positive', 0, .6), ('pan_negative', 0, -.6), ('tilt_positive', 1, .3), ('tilt_negative', 1, -.3)]
     for variant in VARIANTS:
-        runtime = Simulation(mujoco.MjModel.from_xml_path(str(directory / f'{variant}_oakd_s2.xml')))
+        runtime = Simulation(mujoco.MjModel.from_xml_path(str(directory / f'{variant}_{camera_config}.xml')))
         for motion, joint, target in steps:
             runtime.reset()
             goal = [0., 0.]
@@ -30,7 +30,7 @@ def benchmark(directory):
             settled = np.flatnonzero(np.abs(trace - target) > .02 * abs(target))
             # None when the final sample is still outside the 2% band
             settle_seconds = 0. if not settled.size else None if settled[-1] == len(trace) - 1 else float((settled[-1] + 1) * runtime.model.opt.timestep)
-            rows.append({'variant': variant, 'motion': motion, 'joint': PAYLOAD[joint], 'target': target,
+            rows.append({'variant': variant, 'camera': camera_config, 'motion': motion, 'joint': PAYLOAD[joint], 'target': target,
                          'seconds': 2, 'final_error': float(target - trace[-1]),
                          'overshoot_fraction': float(max(0., np.max(trace * np.sign(target)) - abs(target)) / abs(target)),
                          'settle_seconds': settle_seconds,
@@ -40,15 +40,16 @@ def benchmark(directory):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--camera', choices=['oakd_s2', 'gemini2'], default='oakd_s2')
     parser.add_argument('--control-package', type=Path)
     parser.add_argument('--description-package', type=Path)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     with TemporaryDirectory(prefix='pt_benchmark_') as directory:
         for variant in VARIANTS:
-            build(variant, Path(directory) / f'{variant}_oakd_s2.xml', absolute=True,
-                  control_dir=args.control_package, description_dir=args.description_package)
-        result = {'updated': benchmark(Path(directory))}
+            build(variant, Path(directory) / f'{variant}_{args.camera}.xml', absolute=True,
+                  control_dir=args.control_package, description_dir=args.description_package, camera_config=args.camera)
+        result = {'updated': benchmark(Path(directory), args.camera)}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2))
     print(args.output)

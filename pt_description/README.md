@@ -1,6 +1,6 @@
 # Pan Tilt Description
 
-URDF/xacro model of the Pan Tilt mechanisms - `pt100` and `pt101` (two STS3215 servos and an OAK-D S2 camera), its meshes, and a launch file for viewing it. The same files describe the standalone pan-tilt and the module that other robots embed. Everything else in the `pantilt_ros2` repository, including the MuJoCo model, is generated from this description.
+URDF/xacro model of the Pan Tilt mechanisms - `pt100` and `pt101` (two STS3215 servos and an OAK-D S2 or Gemini 2 camera), its meshes, and a launch file for viewing it. The same files describe the standalone pan-tilt and the module that other robots embed. Everything else in the `pantilt_ros2` repository, including the MuJoCo model, is generated from this description.
 
 ## Contents
 
@@ -11,8 +11,8 @@ URDF/xacro model of the Pan Tilt mechanisms - `pt100` and `pt101` (two STS3215 s
 | `urdf/pantilt.control.xacro` | The `<ros2_control>` block for a dedicated serial bus, plus the launch arguments below |
 | `urdf/pantilt.joints.xacro` | The `pantilt_joints` macro: only the ros2_control joints, for a host that shares its bus |
 | `urdf/pantilt.common.xacro` | Geometry constants, mesh variant selection, joint origins and limits |
-| `urdf/oakd_s2.module.xacro` | The OAK-D S2 camera and IMU as an `oakd_s2_camera` macro |
-| `urdf/pt100.urdf`, `urdf/pt101.urdf` | Pre-generated standalone URDFs for the two variants |
+| `urdf/camera.module.xacro` | Shared `camera` macro for both camera meshes and compatibility IMU frames |
+| `urdf/pt{100,101}_{oakd_s2,gemini2}.urdf` | Four pre-generated standalone body/camera combinations |
 | `meshes/` | STL files for the base, shoulder, motors and camera |
 | `launch/urdf.launch.py` | Starts `robot_state_publisher` with the standalone URDF |
 
@@ -72,19 +72,23 @@ base_footprint                  ← standalone root only
 └── pantilt_base_link           ← mount to the host when embedded
     └── shoulder_link           ← shoulder_pan_joint
         └── tilt_link           ← tilt_joint
-            └── oak_link        ← OAK-D S2 optical centre
+            └── oak_link        ← compatibility camera frame (Gemini optical calibration pending)
                 ├── oak_link_model_origin   ← mesh visual origin
                 └── oak_imu_frame
 ```
 
 ## Regenerating the pre-built URDFs
 
-`pt100.urdf` and `pt101.urdf` are checked in for tools that want plain URDF without running xacro. Regenerate them from the `urdf/` directory after any xacro change:
+`pt100_oakd_s2.urdf`, `pt101_oakd_s2.urdf`, `pt100_gemini2.urdf`, and
+`pt101_gemini2.urdf` are checked in for tools that want plain URDF without running xacro. Regenerate them from the `urdf/` directory after any xacro change:
 
 ```bash
 for v in pt100 pt101; do
-  xacro pantilt.urdf.xacro pantilt_config:=$v -o $v.urdf
-  sed -i 's#package://pt_description/meshes/#../meshes/#g' $v.urdf
+  for camera in oakd_s2 gemini2; do
+    output="${v}_${camera}.urdf"
+    xacro pantilt.urdf.xacro pantilt_config:=$v camera_config:=$camera -o "$output"
+    python3 -c 'from pathlib import Path; import sys; p=Path(sys.argv[1]); p.write_text(p.read_text().replace("package://pt_description/meshes/", "../meshes/"))' "$output"
+  done
 done
 ```
 
@@ -99,3 +103,21 @@ pytest test -q
 ```
 
 The tests run `xacro` as a subprocess and check the output for both variants and hardware types: that the correct hardware plugin is selected, the servo profile defaults are 65 / 50 / 0, and the velocity limits are unlimited except where a simulator enforces them.
+
+Camera geometry is selected independently with `camera_config:=oakd_s2|gemini2`
+(default `oakd_s2`), for either PT100 or PT101. Gemini 2 uses dedicated meshes and a measured camera mounting offset, while
+retaining the existing camera frame names; see the [camera variant notes](../README.md#camera-mesh-variants).
+
+Camera STL assets must omit embedded binary-STL color headers and per-face colors,
+so viewers use the URDF materials: charcoal for the camera and light grey for
+the tilt mount, matching the other printed parts. Both Gemini meshes retain their
+geometry; their CAD-export color metadata has been removed.
+
+## MuJoCo camera subtrees
+
+`pt_mujoco` selects `oakd_s2_subtree.xml` or `gemini2_subtree.xml` from the
+expanded URDF's camera mesh. These define the corresponding tilt assembly and
+simulation sensor. The builder then synchronizes mesh origins, transforms and
+physical parameters from the URDF. Regenerate both camera sets after changing
+this description; see [the builder instructions](../pt_mujoco/README.md#gemini-2-models).
+Plain `.urdf` snapshots use `../meshes/` paths; Xacro retains ROS package paths.

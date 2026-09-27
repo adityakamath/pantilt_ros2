@@ -127,3 +127,33 @@ def test_velocity_limit_is_unlimited_except_where_the_simulator_enforces_it(pant
         velocity = float(root.find(f"joint[@name='{name}']/limit").get('velocity'))
         assert (velocity >= 1e6) == unlimited, (hardware_type, name, velocity)
 
+
+
+@pytest.mark.parametrize('pantilt_config', _CONFIGS)
+@pytest.mark.parametrize('camera_config', ('oakd_s2', 'gemini2'))
+def test_camera_mesh_selection(pantilt_config, camera_config):
+    root = _process_urdf(pantilt_config, camera_config=camera_config)
+    tilt = root.find("link[@name='tilt_link']")
+    for role in ('visual', 'collision'):
+        path = tilt.find(f'{role}/geometry/mesh').get('filename')
+        assert path.endswith(f'/tilt_joint_{camera_config}.stl')
+    camera = root.find("link[@name='oak_link_model_origin']/visual/geometry/mesh")
+    assert camera.get('filename').endswith(f'/{camera_config}.stl')
+    # Placeholder camera must preserve the existing mount and joint contracts.
+    assert root.find("joint[@name='oak_link_center_joint']/parent").get('link') == 'tilt_link'
+    for mesh in _mesh_paths(root):
+        assert os.path.isfile(os.path.join(_SHARE, mesh))
+
+
+@pytest.mark.parametrize('mesh_name', ('gemini2.stl', 'tilt_joint_gemini2.stl'))
+def test_gemini_stl_defers_color_to_urdf(mesh_name):
+    """Binary STL color extensions can override the URDF material in mesh viewers."""
+    import struct
+    from pathlib import Path
+
+    data = (Path(_SHARE) / 'meshes' / mesh_name).read_bytes()
+    count = struct.unpack_from('<I', data, 80)[0]
+    assert len(data) == 84 + count * 50
+    assert b'COLOR=' not in data[:80]
+    assert all(struct.unpack_from('<H', data, 84 + i * 50 + 48)[0] == 0
+               for i in range(count))

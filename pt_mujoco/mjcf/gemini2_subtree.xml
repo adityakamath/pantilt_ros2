@@ -1,0 +1,20 @@
+<!-- tilt_link and the Gemini 2 mount, spliced into shoulder_link by pantilt.mjcf.xacro; rotations are quats because URDF rpy order differs from MuJoCo euler -->
+<mujoco>
+  <body name="tilt_link" pos="0.0306 0 0.0541441" quat="0.5 -0.5 0.5 0.5">
+    <inertial pos="0 0 0" mass="0.1" diaginertia="0.001 0.001 0.001"/>
+    <joint name="tilt_joint" class="pt_sts3215" axis="0 0 -1" range="-1.5708 1.5708"/>
+    <geom mesh="tilt_joint_gemini2" material="light_grey" class="visual"
+          pos="0.119 0.0758 -0.000425" quat="0.5 0.5 -0.5 0.5"/>
+    <geom mesh="tilt_joint_gemini2" class="collision"
+          pos="0.119 0.0758 -0.000425" quat="0.5 0.5 -0.5 0.5"/>
+
+    <!-- Gemini 2 camera mount - decorative mass, no collision geom. -->
+    <body name="oak_link" pos="-0.0306 -0.0068941 -0.000225" quat="0.5 -0.5 0.5 -0.5">
+      <body name="oak_link_model_origin" quat="0.5 0.5 0.5 0.5">
+        <geom mesh="gemini2" class="visual" rgba="0.15 0.15 0.15 1.0" quat="0 0 0 1"/>
+      </body>
+      <!-- RGB camera: compatibility fovy 55; Gemini optical calibration pending, 640x400 @ 30 Hz; quat is approximate, MuJoCo -Z forward differs from the ROS optical frame -->
+      <camera name="oak_rgb" fovy="55" resolution="640 400" pos="0 0 0" quat="1 0 0 0"/>
+    </body>
+  </body>
+</mujoco>

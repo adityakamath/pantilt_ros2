@@ -1,6 +1,6 @@
 # Pan Tilt Bringup
 
-System-level launch files for the Pan Tilt mechanism (`pt100`, `pt101`): the full bringup (control and camera), the OAK-D S2 camera on its own, and the camera configuration.
+System-level launch files for the Pan Tilt mechanism (`pt100`, `pt101`): the full bringup (control plus the OAK driver, or Gemini geometry without a real camera driver), the OAK-D S2 camera on its own, and the camera configuration.
 
 ## Contents
 
@@ -33,7 +33,7 @@ The `joy` node is not started; run `ros2 run joy joy_node` before using a joysti
 
 | Argument | Default | Meaning |
 |----------|---------|---------|
-| `sts_serial_port`, `use_mock`, `diagnostics`, `pantilt_config` | as in [`pt_control`](../pt_control/README.md#launch-arguments) | Passed to `pt_control` |
+| `sts_serial_port`, `use_mock`, `diagnostics`, `pantilt_config`, `camera_config` | as in [`pt_control`](../pt_control/README.md#launch-arguments) | Passed to `pt_control` |
 | `use_sim_time` | `false` | Use `/clock` instead of system time |
 | `pointcloud` | `false` | Layer `oakd_vio_pcl.yaml` on the base profile |
 | `octomap` | `false` | Also run `octomap_server` on the point cloud; needs `pointcloud:=true` |
@@ -76,3 +76,20 @@ DEPTHAI_DEBUG=1 ros2 launch pt_bringup pantilt.launch.py
 ## Using it on another robot
 
 To use the camera on a robot without the pan-tilt, launch `oakd.launch.py` with `tf_parent_frame` set to that robot's camera mount link. `pantilt.launch.py` runs its own controller manager, so a robot that shares the servo bus does not include it; see [`pt_control`](../pt_control/README.md#using-it-on-another-robot).
+
+## Camera selection
+
+Pass `camera_config:=gemini2` independently of `pantilt_config:=pt100|pt101`.
+The default is `oakd_s2`. The same selection is forwarded to URDF generation and,
+in simulation, to the MuJoCo builder. When launching `pt_control` directly, its explicit `mujoco_model` option overrides
+model building and must already match the selected camera geometry.
+
+Gemini 2 uses its own camera and tilt-mount meshes, aligned mounting faces, equal
+motor-side clearance, and the upright camera-body rotation. Camera/IMU frame names
+remain compatible with the existing OAK pipeline. Real Gemini bringup does not
+launch a camera driver; Orbbec integration and optical/IMU calibration are pending.
+OAK-specific pointcloud, octomap and camera-driver settings apply only to OAK.
+
+For simulation, `camera_config` selects `oakd_s2_subtree.xml` or
+`gemini2_subtree.xml` through the builder. See the [MuJoCo camera documentation](../pt_mujoco/README.md#gemini-2-models)
+for regeneration, standalone tools, and the remaining simulated sensor limitations.

@@ -1,6 +1,6 @@
 # Pan Tilt MuJoCo
 
-MuJoCo models of the Pan Tilt mechanism (`pt100`, `pt101`) and its OAK-D S2 camera, generated from the URDF in `pt_description`. The package gives you three ways to use them:
+MuJoCo models of the Pan Tilt mechanism (`pt100`, `pt101`) with OAK-D S2 or Orbbec Gemini 2 camera geometry, generated from the URDF in `pt_description`. The package gives you three ways to use them:
 
 - **Standalone:** a native viewer, a model builder and a benchmark, with no ROS needed.
 - **ROS simulation:** `sim:=true` runs the same controllers and teleop as the real pan-tilt against the model in `mujoco_ros2_control`.
@@ -15,7 +15,8 @@ MuJoCo models of the Pan Tilt mechanism (`pt100`, `pt101`) and its OAK-D S2 came
 | `pt_mujoco/simulation.py` | The simulation without ROS: reset, command, step |
 | `pt_mujoco/mujoco_preview.py`, `benchmark_mujoco.py` | Native viewer and step-response benchmark |
 | `config/` | Physics and servo profile, ROS plugin configuration, depth-to-scan slice |
-| `mjcf/` | MJCF sources, the `scenes/` floor and the pre-built `pt100`/`pt101` models |
+| `mjcf/` | MJCF sources, the `scenes/` floor and four pre-built body/camera combinations |
+| `mjcf/oakd_s2_subtree.xml`, `mjcf/gemini2_subtree.xml` | Camera-specific tilt assemblies selected by `camera_config` |
 
 ## Requirements
 
@@ -39,7 +40,7 @@ python3 -m pt_mujoco.benchmark_mujoco --output step_response.json
 
 In the viewer, click the window first, then use Left/Right for pan, Up/Down for tilt, Space to toggle the emergency stop (disables torque on both motors, matching `mujoco_ros2_plugins/EmergencyStopPlugin`'s real behavior - the pan-tilt drifts freely rather than holding), X to reset and P to pause. The same tools are installed as commands (`ros2 run pt_mujoco <tool>` or `pip install -e .`).
 
-Always build models with `build_mujoco_models` rather than plain xacro: it takes frames, mesh origins, inertias and joint limits from the URDF. `--scene` selects the environment (`flat`, `none` or a scene file). With no arguments it regenerates the committed `mjcf/pt100_oakd_s2.xml` and `mjcf/pt101_oakd_s2.xml`, which you should do after any change to the URDF, the config or the MJCF.
+Always build models with `build_mujoco_models` rather than plain xacro: it takes frames, mesh origins, inertias and joint limits from the URDF. `--scene` selects the environment (`flat`, `none` or a scene file). With no arguments it regenerates the committed `mjcf/pt100_oakd_s2.xml` and `mjcf/pt101_oakd_s2.xml`, for the default camera. Also run with `--camera gemini2` after any change to the URDF, config or MJCF to refresh all four models.
 
 From Python:
 
@@ -64,7 +65,7 @@ ros2 launch pt_bringup pantilt.launch.py sim:=true                    # headless
 ros2 launch pt_bringup pantilt.launch.py sim:=true mujoco_gui:=true   # with the MuJoCo viewer
 ```
 
-`pantilt_config` (`pt100` or `pt101`) and `mujoco_scene` choose the model. To watch a headless run from another machine, start `foxglove_bridge` and connect Foxglove to `ws://<host>:8765`. Command it as on the real pan-tilt, with the joystick or:
+`pantilt_config` (`pt100` or `pt101`), `camera_config` (`oakd_s2` or `gemini2`) and `mujoco_scene` choose the model. To watch a headless run from another machine, start `foxglove_bridge` and connect Foxglove to `ws://<host>:8765`. Command it as on the real pan-tilt, with the joystick or:
 
 ```sh
 ros2 topic pub /pantilt_controller/commands std_msgs/msg/Float64MultiArray "{data: [0.5, -0.3]}"
@@ -73,7 +74,7 @@ ros2 topic pub /pantilt_controller/commands std_msgs/msg/Float64MultiArray "{dat
 | Topic or service | What it is |
 |---|---|
 | `/joint_states`, `/pantilt_controller/commands` | Same as the real robot, from ros2_control on the simulated motors |
-| `/oak/rgb/image_raw`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` | Simulated OAK-D S2 camera in frame `oak_rgb_camera_optical_frame`. The image is upside down, like the real, inverted camera mount |
+| `/oak/rgb/image_raw`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` | Compatibility camera in frame `oak_rgb_camera_optical_frame`; OAK optical settings are retained for both geometries pending Gemini calibration |
 | `/oak/rgb/image_raw/compressed` | Compressed version of the RGB image |
 | `/oak/scan` | Laser scan sliced from the depth image, as on the real bringup |
 | `/emergency_stop` (`std_srvs/SetBool`) | While enabled, torque is disabled on both motors and commands are ignored, matching the real robot's `sts_hardware_interface`; the pan-tilt drifts freely rather than holding position; releasing it hands control back |
@@ -117,3 +118,36 @@ pytest pt_mujoco/test -q       # about 15 seconds
 ```
 
 The launch arguments are covered by `pt_control/test/test_launch.py`.
+
+## Gemini 2 models
+
+All standalone tools accept `--camera gemini2` (default `oakd_s2`):
+
+```sh
+python3 -m pt_mujoco.mujoco_preview --variant pt101 --camera gemini2
+python3 -m pt_mujoco.build_mujoco_models --camera gemini2
+python3 -m pt_mujoco.benchmark_mujoco --camera gemini2 --output gemini_steps.json
+ros2 launch pt_bringup pantilt.launch.py sim:=true camera_config:=gemini2
+```
+
+Regenerate both camera sets after geometry changes:
+
+```sh
+python3 -m pt_mujoco.build_mujoco_models --camera oakd_s2
+python3 -m pt_mujoco.build_mujoco_models --camera gemini2
+```
+
+This produces `mjcf/pt{100,101}_{oakd_s2,gemini2}.xml` with portable mesh paths.
+Python callers pass `camera_config="gemini2"` to `build`, `build_spec`, or
+`build_robot_spec`. Host payload construction derives the mesh choice from its URDF.
+The Gemini camera flip, seating offset and centered tilt mount come from Xacro;
+the camera is charcoal and the bracket uses the shared light-grey material.
+
+The simulated sensor still uses OAK frame/topic names, image orientation, resolution,
+and field of view. These are compatibility settings, not a calibrated Gemini 2
+sensor model. Camera inertia and optical/IMU calibration remain future work.
+`--model` in the viewer uses the supplied model as-is rather than applying `--camera`.
+
+`mjcf/oakd_s2_subtree.xml` and `mjcf/gemini2_subtree.xml` define the camera-specific
+tilt assemblies. The builder selects the subtree from the URDF camera mesh, then
+synchronizes transforms and geometry from the URDF as before.

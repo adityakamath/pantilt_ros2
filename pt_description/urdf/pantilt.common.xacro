@@ -10,6 +10,12 @@
   <xacro:arg name="pantilt_config" default="pt101"/>
   <xacro:property name="pantilt_config" value="$(arg pantilt_config)"/>
 
+  <!-- Camera choice is independent of the pan/tilt body variant. -->
+  <xacro:arg name="camera_config" default="oakd_s2"/>
+  <xacro:property name="camera_config" value="$(arg camera_config)"/>
+  <xacro:property name="camera_mesh" value="${dict(oakd_s2='oakd_s2.stl', gemini2='gemini2.stl')[camera_config]}"/>
+  <xacro:property name="tilt_camera_mesh" value="${dict(oakd_s2='tilt_joint_oakd_s2.stl', gemini2='tilt_joint_gemini2.stl')[camera_config]}"/>
+
   <!-- Pantilt base visual compensation / mount rotation (rad) -->
   <xacro:property name="pantilt_offset_rz" value="${pi/2}"/>
 
@@ -58,19 +64,30 @@
   <xacro:property name="tilt_visual_y" value="${shoulder_pan_x + tilt_joint_x}"/>
   <xacro:property name="tilt_visual_z" value="-0.0002"/>
 
-  <!-- OAK-D-S2 camera mount offset (in tilt_link frame) -->
-  <xacro:property name="oak_pos_x" value="-0.0306"/>
-  <xacro:property name="oak_pos_y" value="-0.012165"/>
+  <!-- Camera mount offset (in tilt_link frame) -->
+  <xacro:property name="camera_pos_x" value="-0.0306"/>
+  <xacro:property name="camera_pos_y" value="-0.012165"/>
+  <xacro:property name="camera_pos_z" value="0"/>
+  <!-- Gemini rear face z=-18.65 mm seats on mount z=64.0441 mm in mesh/world X.
+       Required camera origin X=82.6941 mm; tilt origin X=75.8 mm, local Y=-world X. -->
+  <xacro:if value="${camera_config == 'gemini2'}">
+    <xacro:property name="camera_pos_y" value="-0.0068941"/>
+    <!-- Mount inner faces: -18.1/+18.75 mm in STL X; motor faces: -18.3/+18.1 mm.
+         Offset -0.425 mm centers the 36.85 mm opening on the 36.4 mm motor span,
+         leaving 0.225 mm per side. Shift the camera by the same additional -0.225 mm. -->
+    <xacro:property name="tilt_visual_z" value="-0.000425"/>
+    <xacro:property name="camera_pos_z" value="-0.000225"/>
+  </xacro:if>
 
-  <!-- OAK-D-S2 camera mount orientation (in tilt_link frame) -->
-  <xacro:property name="oak_roll" value="${-pi/2}"/>
-  <xacro:property name="oak_yaw"  value="${-pi/2}"/>
+  <!-- Camera mount orientation (in tilt_link frame) -->
+  <xacro:property name="camera_roll" value="${-pi/2}"/>
+  <xacro:property name="camera_yaw"  value="${-pi/2}"/>
 
-  <!-- OAK-D-S2 IMU offset (relative to oak frame) -->
-  <xacro:property name="oak_imu_x" value="-0.008"/>
-  <xacro:property name="oak_imu_y" value="-0.037945"/>
-  <xacro:property name="oak_imu_z" value="-0.00079"/>
-  <xacro:property name="oak_imu_r" value="${pi}"/>
-  <xacro:property name="oak_imu_p" value="${pi/2}"/>
+  <!-- Compatibility IMU offset (OAK calibration) (relative to oak frame) -->
+  <xacro:property name="camera_imu_x" value="-0.008"/>
+  <xacro:property name="camera_imu_y" value="-0.037945"/>
+  <xacro:property name="camera_imu_z" value="-0.00079"/>
+  <xacro:property name="camera_imu_r" value="${pi}"/>
+  <xacro:property name="camera_imu_p" value="${pi/2}"/>
 
 </robot>

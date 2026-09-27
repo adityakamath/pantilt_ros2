@@ -10,8 +10,8 @@
          meshes differ between variants (declared in pantilt.mjcf.xacro). -->
     <mesh name="pan_motor" file="$(find pt_description)/meshes/pan_motor.stl"/>
     <mesh name="tilt_motor" file="$(find pt_description)/meshes/tilt_motor.stl"/>
-    <mesh name="tilt_joint_oakd_s2" file="$(find pt_description)/meshes/tilt_joint_oakd_s2.stl"/>
-    <mesh name="oakd_s2" file="$(find pt_description)/meshes/oakd_s2.stl"/>
+    <mesh name="tilt_joint_${camera_config}" file="$(find pt_description)/meshes/tilt_joint_${camera_config}.stl"/>
+    <mesh name="${camera_config}" file="$(find pt_description)/meshes/${camera_config}.stl"/>
   </asset>
 
   <default>

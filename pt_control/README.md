@@ -35,6 +35,7 @@ This is the dedicated-bus setup: it runs its own controller manager on its own s
 | `sts_serial_port` | `""` | Serial port; empty uses `urdf_config.yaml` |
 | `use_mock` | `""` | `true` or `false`; empty uses `urdf_config.yaml` |
 | `diagnostics` | `false` | Also start the motor diagnostics node (`/base/diagnostics`) |
+| `camera_config` | `oakd_s2` | Camera geometry: `oakd_s2` or `gemini2`; selects the corresponding MuJoCo subtree |
 | `pantilt_config` | `pt101` | Mesh variant, `pt100` or `pt101` |
 | `use_sim_time` | `false` | Use `/clock` instead of system time |
 | `ros2_control_hardware_type` | `real` | `real` or `mujoco` (`gazebo` exists in the xacro but is not wired into this launch file) |
@@ -78,3 +79,20 @@ pytest test -q
 ```
 
 The tests check the launch arguments (including the simulation ones), that the simulation configuration is loaded from `pt_mujoco`, and that the servo profile in `urdf_config.yaml` is within range, matches the URDF defaults and is passed to the URDF.
+
+## Camera selection
+
+Pass `camera_config:=gemini2` independently of `pantilt_config:=pt100|pt101`.
+The default is `oakd_s2`. The same selection is forwarded to URDF generation and,
+in simulation, to the MuJoCo builder. An explicit `mujoco_model` overrides model
+building and must already match the selected camera geometry.
+
+Gemini 2 uses its own camera and tilt-mount meshes, aligned mounting faces, equal
+motor-side clearance, and the upright camera-body rotation. Camera/IMU frame names
+remain compatible with the existing OAK pipeline. Real Gemini bringup does not
+launch a camera driver; Orbbec integration and optical/IMU calibration are pending.
+OAK-specific pointcloud, octomap and camera-driver settings apply only to OAK.
+
+The generated simulation uses `oakd_s2_subtree.xml` or `gemini2_subtree.xml`,
+with mounting transforms synchronized from the selected URDF. Both retain the
+existing `/oak/*` topics and OAK optical settings until Gemini calibration is added.

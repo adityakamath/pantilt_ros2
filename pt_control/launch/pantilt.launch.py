@@ -36,6 +36,7 @@ def launch_setup(context):
     use_mock       = LaunchConfiguration('use_mock').perform(context)
     diagnostics    = _launch_arg_as_bool(context, 'diagnostics')
     pantilt_config = LaunchConfiguration('pantilt_config').perform(context)
+    camera_config = LaunchConfiguration('camera_config').perform(context)
     use_sim_time   = _launch_arg_as_bool(context, 'use_sim_time')
     hw_type = LaunchConfiguration('ros2_control_hardware_type').perform(context)
     mujoco_model    = LaunchConfiguration('mujoco_model').perform(context)
@@ -61,7 +62,7 @@ def launch_setup(context):
             subprocess.run([
                 sys.executable, '-m', 'pt_mujoco.build_mujoco_models',
                 '--control-package', pkg_ctrl, '--description-package', pkg_desc,
-                '--variant', pantilt_config, '--output', final_mujoco_model, '--absolute',
+                '--camera', camera_config, '--variant', pantilt_config, '--output', final_mujoco_model, '--absolute',
                 '--scene', mujoco_scene,
             ], capture_output=True, text=True, check=True)
         except subprocess.CalledProcessError:
@@ -81,6 +82,7 @@ def launch_setup(context):
         f' baud_rate:={_cfg["baud_rate"]}'
         f' use_sync_write:={str(_cfg["use_sync_write"]).lower()}'
         f' pantilt_config:={pantilt_config}'
+        f' camera_config:={camera_config}'
         f' sts3215_max_vel_steps:={_cfg["sts3215_max_vel_steps"]}'
         f' proportional_vel_max:={_cfg["proportional_vel_max"]}'
         f' internal_max_vel:={_cfg["internal_max_vel"]}'
@@ -216,6 +218,10 @@ def launch_setup(context):
 def generate_launch_description():
     """Declare control-stack launch arguments and launch via launch_setup."""
     declared_arguments = [
+        DeclareLaunchArgument(
+            'camera_config', default_value='oakd_s2', choices=['oakd_s2', 'gemini2'],
+            description='Camera geometry variant; Gemini 2 driver integration is not yet available.',
+        ),
         DeclareLaunchArgument(
             'sts_serial_port',
             default_value='',

@@ -2,7 +2,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
 
   <xacro:include filename="$(find pt_description)/urdf/pantilt.common.xacro"/>
-  <xacro:include filename="$(find pt_description)/urdf/oakd_s2.module.xacro"/>
+  <xacro:include filename="$(find pt_description)/urdf/camera.module.xacro"/>
 
   <xacro:macro name="pantilt_module" params="parent *origin">
 
@@ -89,14 +89,14 @@
       <visual>
         <origin xyz="${tilt_visual_x} ${tilt_visual_y} ${tilt_visual_z}" rpy="${tilt_offset_rx} ${tilt_offset_ry} 0"/>
         <geometry>
-          <mesh filename="package://pt_description/meshes/tilt_joint_oakd_s2.stl"/>
+          <mesh filename="package://pt_description/meshes/${tilt_camera_mesh}"/>
         </geometry>
         <material name="light_grey"/>
       </visual>
       <collision>
         <origin xyz="${tilt_visual_x} ${tilt_visual_y} ${tilt_visual_z}" rpy="${tilt_offset_rx} ${tilt_offset_ry} 0"/>
         <geometry>
-          <mesh filename="package://pt_description/meshes/tilt_joint_oakd_s2.stl"/>
+          <mesh filename="package://pt_description/meshes/${tilt_camera_mesh}"/>
         </geometry>
       </collision>
     </link>
@@ -121,13 +121,15 @@
       <limit lower="${tilt_joint_lower}" upper="${tilt_joint_upper}" effort="${max_torque_nm}" velocity="${1e6 if '$(arg ros2_control_hardware_type)' in ('real', 'mujoco') else pantilt_max_velocity_rads}"/>
     </joint>
 
-    <!-- OAK-D-S2 Camera + IMU -->
-    <xacro:oakd_s2_camera
+    <!-- Selected camera mesh + compatibility camera/IMU frames -->
+    <xacro:camera
+      mesh_file="${camera_mesh}"
+      mesh_yaw="${pi if camera_config == 'gemini2' else 0}"
       camera_name="oak_link"
       base_frame="oak_link"
       parent="tilt_link"
-      cam_pos_x="${oak_pos_x}" cam_pos_y="${oak_pos_y}" cam_pos_z="0"
-      cam_roll="${oak_roll}" cam_pitch="0" cam_yaw="${oak_yaw}"
+      cam_pos_x="${camera_pos_x}" cam_pos_y="${camera_pos_y}" cam_pos_z="${camera_pos_z}"
+      cam_roll="${camera_roll}" cam_pitch="0" cam_yaw="${camera_yaw}"
       r="${charcoal_rgb}" g="${charcoal_rgb}" b="${charcoal_rgb}" a="1.0"
       imu_frame="oak_imu_frame"/>
 

@@ -107,13 +107,15 @@ def test_step_response_settles_with_bounded_overshoot(variant, joint, target):
 
 
 @pytest.mark.parametrize('variant', VARIANTS)
-def test_generated_assets_are_current_and_portable(tmp_path, variant):
+@pytest.mark.parametrize('camera', ('oakd_s2', 'gemini2'))
+def test_generated_assets_are_current_and_portable(tmp_path, variant, camera):
+    model_path = ROOT / 'mjcf' / f'{variant}_{camera}.xml'
     spec = importlib.util.spec_from_file_location('builder', ROOT / 'pt_mujoco/build_mujoco_models.py')
     fresh = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(fresh)
-    output = fresh.build(variant, tmp_path / snapshot(variant).name, absolute=True)
+    output = fresh.build(variant, tmp_path / model_path.name, absolute=True, camera_config=camera)
     expected = ET.parse(output).getroot()
-    actual = ET.parse(snapshot(variant)).getroot()
+    actual = ET.parse(model_path).getroot()
     for root, directory in [(expected, tmp_path), (actual, ROOT / 'mjcf')]:
         for mesh in root.iter('mesh'):
             mesh.set('file', str((directory / mesh.attrib['file']).resolve()))
@@ -122,7 +124,7 @@ def test_generated_assets_are_current_and_portable(tmp_path, variant):
             node.tail = ''
     assert ET.tostring(expected) == ET.tostring(actual)
     assert not actual.findall('.//include')
-    assert not any(Path(mesh.attrib['file']).is_absolute() for mesh in ET.parse(snapshot(variant)).getroot().iter('mesh'))
+    assert not any(Path(mesh.attrib['file']).is_absolute() for mesh in ET.parse(model_path).getroot().iter('mesh'))
     mujoco.MjModel.from_xml_path(str(output))
 
 
@@ -280,7 +282,7 @@ def test_scene_none_builds_the_bare_robot(tmp_path):
 def test_payload_mass_changes_and_new_camera_inertia(workspace):
     module = workspace.description / 'urdf/pantilt.module.xacro'
     module.write_text(module.read_text().replace('<mass value="1.0"/>', '<mass value="1.3"/>'))
-    module = workspace.description / 'urdf/oakd_s2.module.xacro'
+    module = workspace.description / 'urdf/camera.module.xacro'
     # Adding missing inertial data later must replace the massless frame automatically.
     module.write_text(module.read_text().replace(
         '<link name="${camera_name}_model_origin">',
@@ -366,3 +368,16 @@ def test_instant_jump_to_a_limit_barely_penetrates_the_end_stop(variant, joint, 
         peak = max(peak, sign * data.qpos[model.joint(joint).qposadr[0]])
     assert peak - limit < .002, peak - limit
 
+
+
+@pytest.mark.parametrize('variant', VARIANTS)
+@pytest.mark.parametrize('camera', ('oakd_s2', 'gemini2'))
+def test_camera_variant_assets_compile(variant, camera):
+    spec = builder.build_robot_spec(
+        variant, DESCRIPTION, control_dir=CONTROL, camera_config=camera)
+    filenames = {Path(mesh.file).name for mesh in spec.meshes if mesh.file}
+    assert f'{camera}.stl' in filenames
+    assert f'tilt_joint_{camera}.stl' in filenames
+    model = spec.compile()
+    assert model.body('oak_link').id > 0
+    assert model.joint('tilt_joint').id > 0

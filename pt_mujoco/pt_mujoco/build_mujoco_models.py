@@ -50,13 +50,13 @@ def control_package():
     return package_share('pt_control')
 
 
-def payload_urdf(variant, packages, control):
+def payload_urdf(variant, packages, control, camera_config='oakd_s2'):
     """Expand pt_description's standalone URDF the way the real robot does, in mock mode."""
     motor = yaml.safe_load((control / 'config/urdf_config.yaml').read_text())
     with package_paths(packages):
         doc = xacro.process_file(str(packages['pt_description'] / 'urdf/pantilt.urdf.xacro'), mappings={
             **{key: str(value).lower() if isinstance(value, bool) else str(value) for key, value in motor.items()},
-            'pantilt_config': variant, 'use_mock': 'true'})
+            'pantilt_config': variant, 'camera_config': camera_config, 'use_mock': 'true'})
     return ET.fromstring(doc.toxml())
 
 
@@ -136,9 +136,13 @@ def build_payload_spec(variant, urdf, payload_limits, description_dir=None):
     if variant not in VARIANTS:
         raise ValueError(f'Unknown variant: {variant}')
     packages = {'pt_description': Path(description_dir).resolve() if description_dir else package_share('pt_description')}
+    camera_mesh = urdf.find("link[@name='oak_link_model_origin']/visual/geometry/mesh")
+    camera_config = Path(camera_mesh.get('filename')).stem
+    if camera_config not in ('oakd_s2', 'gemini2'):
+        raise ValueError(f'Unknown camera mesh: {camera_config}')
     with package_paths(packages):
         doc = xacro.process_file(str(SIM_PACKAGE / 'mjcf/pt.mjcf.xacro'),
-                                 mappings={'pantilt_config': variant})
+                                 mappings={'pantilt_config': variant, 'camera_config': camera_config})
     # MuJoCo parses includes and maintains model references; no custom XML assembly.
     spec = mujoco.MjSpec.from_string(doc.toxml())
     sync_payload_geometry(spec, urdf)
@@ -153,13 +157,13 @@ def build_payload_spec(variant, urdf, payload_limits, description_dir=None):
     return spec
 
 
-def build_robot_spec(variant, description_dir=None, *, control_dir=None):
+def build_robot_spec(variant, description_dir=None, *, control_dir=None, camera_config='oakd_s2'):
     """The payload alone, synced from this package's standalone URDF."""
     if variant not in VARIANTS:
         raise ValueError(f'Unknown variant: {variant}')
     control = Path(control_dir).resolve() if control_dir else control_package()
     description = Path(description_dir).resolve() if description_dir else package_share('pt_description')
-    urdf = payload_urdf(variant, {'pt_description': description}, control)
+    urdf = payload_urdf(variant, {'pt_description': description}, control, camera_config)
     spec = build_payload_spec(variant, urdf, joint_limits(control), description)
     configure_physics(spec)
     return spec
@@ -209,13 +213,13 @@ def compose_scene(robot, scene='flat'):
     return world
 
 
-def build_spec(variant, description_dir=None, scene='flat', *, control_dir=None):
-    return compose_scene(build_robot_spec(variant, description_dir, control_dir=control_dir), scene)
+def build_spec(variant, description_dir=None, scene='flat', *, control_dir=None, camera_config='oakd_s2'):
+    return compose_scene(build_robot_spec(variant, description_dir, control_dir=control_dir, camera_config=camera_config), scene)
 
 
-def build(variant, output, absolute=False, description_dir=None, scene=True, *, control_dir=None):
+def build(variant, output, absolute=False, description_dir=None, scene=True, *, control_dir=None, camera_config='oakd_s2'):
     output = Path(output).resolve()
-    spec = build_spec(variant, description_dir=description_dir, scene=scene, control_dir=control_dir)
+    spec = build_spec(variant, description_dir=description_dir, scene=scene, control_dir=control_dir, camera_config=camera_config)
     for mesh in [*spec.meshes, *spec.textures]:
         if mesh.file:
             path = Path(mesh.file).resolve()
@@ -242,6 +246,7 @@ def build(variant, output, absolute=False, description_dir=None, scene=True, *, 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--variant', choices=VARIANTS)
+    parser.add_argument('--camera', choices=['oakd_s2', 'gemini2'], default='oakd_s2')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--absolute', action='store_true')
     parser.add_argument('--control-package', type=Path, help='Directory containing control config/ (data only)')
@@ -251,11 +256,11 @@ def main():
     if bool(args.variant) != bool(args.output):
         parser.error('--variant and --output must be used together')
     if args.variant:
-        build(args.variant, args.output, args.absolute, args.description_package, scene=args.scene, control_dir=args.control_package)
+        build(args.variant, args.output, args.absolute, args.description_package, scene=args.scene, control_dir=args.control_package, camera_config=args.camera)
     else:
         for variant in VARIANTS:
-            print(build(variant, SIM_PACKAGE / 'mjcf' / f'{variant}_oakd_s2.xml', args.absolute, args.description_package,
-                        scene=args.scene, control_dir=args.control_package))
+            print(build(variant, SIM_PACKAGE / 'mjcf' / f'{variant}_{args.camera}.xml', args.absolute, args.description_package,
+                        scene=args.scene, control_dir=args.control_package, camera_config=args.camera))
 
 
 if __name__ == '__main__':

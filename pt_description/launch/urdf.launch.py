@@ -2,7 +2,8 @@
 """Launch robot_state_publisher only, for visualization; no hardware or controllers."""
 
 from launch import LaunchDescription
-from launch.substitutions import Command, FindExecutable, PathJoinSubstitution
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -17,7 +18,9 @@ def generate_launch_description():
             FindPackageShare('pt_description'),
             'urdf',
             'pantilt.urdf.xacro',
-        ])
+        ]),
+        ' pantilt_config:=', LaunchConfiguration('pantilt_config'),
+        ' camera_config:=', LaunchConfiguration('camera_config'),
     ])
     robot_description = {
         'robot_description': ParameterValue(robot_description_content, value_type=str)
@@ -33,4 +36,8 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', 'WARN'],
     )
 
-    return LaunchDescription([robot_state_publisher_node])
+    return LaunchDescription([
+        DeclareLaunchArgument('pantilt_config', default_value='pt101', choices=['pt100', 'pt101']),
+        DeclareLaunchArgument('camera_config', default_value='oakd_s2', choices=['oakd_s2', 'gemini2']),
+        robot_state_publisher_node,
+    ])

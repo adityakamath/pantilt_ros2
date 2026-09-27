@@ -2,7 +2,7 @@
 """Full Pan Tilt 100 bringup: pt_control plus the OAK-D camera (real hardware only)."""
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
@@ -40,6 +40,7 @@ def launch_setup(context):
         'use_mock': use_mock,
         'diagnostics': LaunchConfiguration('diagnostics'),
         'pantilt_config': LaunchConfiguration('pantilt_config'),
+        'camera_config': LaunchConfiguration('camera_config'),
         'use_sim_time': use_sim_time,
         'ros2_control_hardware_type': hw_type,
     }
@@ -60,7 +61,10 @@ def launch_setup(context):
 
     actions = [pantilt_control_launch]
 
-    if hw_type == 'real':
+    camera_config = LaunchConfiguration('camera_config').perform(context)
+    if hw_type == 'real' and camera_config == 'gemini2':
+        actions.append(LogInfo(msg='Gemini 2 selected: no camera driver is launched.'))
+    if hw_type == 'real' and camera_config == 'oakd_s2':
         oakd_launch = IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 PathJoinSubstitution([
@@ -84,6 +88,10 @@ def launch_setup(context):
 def generate_launch_description():
     """Declare launch arguments and include pt_control's and pt_bringup's own launch files."""
     declared_arguments = [
+        DeclareLaunchArgument(
+            'camera_config', default_value='oakd_s2', choices=['oakd_s2', 'gemini2'],
+            description='Camera geometry variant; Gemini 2 driver integration is not yet available.',
+        ),
         DeclareLaunchArgument(
             'sts_serial_port',
             default_value='',

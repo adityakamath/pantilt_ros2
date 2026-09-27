@@ -112,18 +112,19 @@ CONTROLS = 'Left/Right: pan | Up/Down: tilt | Space: E-Stop | X: reset | P: paus
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--variant', choices=['pt100', 'pt101'], default='pt101')
+    parser.add_argument('--camera', choices=['oakd_s2', 'gemini2'], default='oakd_s2')
     parser.add_argument('--control-package', type=Path)
     parser.add_argument('--description-package', type=Path)
     parser.add_argument('--scene', default='flat', help='flat, none, or scene MJCF path')
     parser.add_argument('--model', type=Path, help='Use an explicit prebuilt XML and its embedded limits instead of regenerating')
     parser.add_argument('--island-colors', action='store_true', help='Debug constraint islands instead of displaying robot materials')
     args = parser.parse_args()
-    filename = f'{args.variant}_oakd_s2.xml'
+    filename = f'{args.variant}_{args.camera}.xml'
     # Keep generated files alive for the viewer lifetime; mesh paths are absolute.
     generated = TemporaryDirectory(prefix='pt_preview_') if args.model is None else None
     path = (args.model.resolve() if args.model else
             build(args.variant, Path(generated.name) / filename, absolute=True, scene=args.scene,
-                  control_dir=args.control_package, description_dir=args.description_package))
+                  control_dir=args.control_package, description_dir=args.description_package, camera_config=args.camera))
     model = mujoco.MjModel.from_xml_path(str(path))
     simulation = Simulation(model)
     simulation.reset()
