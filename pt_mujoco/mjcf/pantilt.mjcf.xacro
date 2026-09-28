@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!-- Parametric PT100/PT101 MJCF (pantilt_body macro, selected by pantilt_config); build_mujoco_models.py syncs the numbers from the URDF -->
 <mujoco xmlns:xacro="http://www.ros.org/wiki/xacro" model="pantilt">
-  <xacro:arg name="camera_config" default="oakd_s2"/>
+  <xacro:arg name="camera_config" default="gemini2"/>
   <xacro:property name="camera_config" value="$(arg camera_config)"/>
   <xacro:arg name="pantilt_config" default="pt101"/>
   <xacro:property name="pantilt_config" value="$(arg pantilt_config)"/>

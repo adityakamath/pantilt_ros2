@@ -11,7 +11,7 @@
   <xacro:property name="pantilt_config" value="$(arg pantilt_config)"/>
 
   <!-- Camera choice is independent of the pan/tilt body variant. -->
-  <xacro:arg name="camera_config" default="oakd_s2"/>
+  <xacro:arg name="camera_config" default="gemini2"/>
   <xacro:property name="camera_config" value="$(arg camera_config)"/>
   <xacro:property name="camera_mesh" value="${dict(oakd_s2='oakd_s2.stl', gemini2='gemini2.stl')[camera_config]}"/>
   <xacro:property name="tilt_camera_mesh" value="${dict(oakd_s2='tilt_joint_oakd_s2.stl', gemini2='tilt_joint_gemini2.stl')[camera_config]}"/>

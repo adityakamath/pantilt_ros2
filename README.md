@@ -6,7 +6,7 @@
 [![Ask DeepWiki (Experimental)](https://deepwiki.com/badge.svg)](https://deepwiki.com/adityakamath/pantilt_ros2)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-ROS 2 software stack for a 2-DOF pan-tilt camera mount built from [SO-100 or SO-101](https://github.com/TheRobotStudio/SO-ARM100) parts, two [Feetech STS3215](https://www.feetechrc.com/2020-05-13_56655.html) servo motors and an [OAK-D S2](https://docs.luxonis.com/hardware/products/OAK-D%20S2) camera, with an Orbbec Gemini 2 geometry option. It provides position control with joystick teleop, visual-inertial odometry (VIO) bringup, a MuJoCo simulation, and an embeddable xacro module for other robots such as [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2).
+ROS 2 software stack for a 2-DOF pan-tilt camera mount built from [SO-100 or SO-101](https://github.com/TheRobotStudio/SO-ARM100) parts, two [Feetech STS3215](https://www.feetechrc.com/2020-05-13_56655.html) servo motors and an [Orbbec Gemini 2](https://www.seeedstudio.com/Orbbec-Gemini-2-3D-Camera-p-6464.html?sensecap_affiliate=8fjl172&referring_service=link) camera. [OAK-D S2](https://docs.luxonis.com/hardware/products/OAK-D%20S2) is also supported as an alternative. It provides position control with joystick teleop, an optional OAK-D S2 depth camera pipeline, a MuJoCo simulation, and an embeddable xacro module for other robots such as [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2).
 
 <p align="center">
   <img width="500" height="575" alt="Screenshot 2026-04-28 at 15 56 11" src="https://github.com/user-attachments/assets/c9520454-7523-44a7-bcb3-8b6428437759" />
@@ -16,9 +16,9 @@ ROS 2 software stack for a 2-DOF pan-tilt camera mount built from [SO-100 or SO-
 
 | Package | Purpose |
 |---------|----------|
-| [`pt_description`](pt_description/) | URDF/xacro model (standalone entry, embeddable macros, all PT100/PT101 × OAK-D S2/Gemini 2 combinations pre-generated), meshes, `urdf.launch.py` |
+| [`pt_description`](pt_description/) | URDF/xacro model (standalone entry, embeddable macros, all PT100/PT101 × Gemini 2/OAK-D S2 combinations pre-generated), meshes, `urdf.launch.py` |
 | [`pt_control`](pt_control/) | `ros2_control` setup and configuration (`urdf_config.yaml`, `pantilt_controller.yaml`, `teleop_config.yaml`) and `pantilt.launch.py` |
-| [`pt_bringup`](pt_bringup/) | Full-system launch, OAK-D S2 driver launch and configuration |
+| [`pt_bringup`](pt_bringup/) | Full-system launch with the Gemini 2 driver by default, alternative OAK-D S2 driver and configuration |
 | [`pt_mujoco`](pt_mujoco/) | MuJoCo model generated from the URDF, camera plugin config, standalone viewer, benchmark |
 
 ## Hardware
@@ -28,7 +28,7 @@ ROS 2 software stack for a 2-DOF pan-tilt camera mount built from [SO-100 or SO-
 | Pan motor    | [Feetech STS3215](https://www.feetechrc.com/2020-05-13_56655.html), motor ID `1`                    |
 | Tilt motor   | Feetech STS3215, motor ID `2`                                                                       |
 | Servo driver | [Waveshare Bus Servo Adapter A](https://www.waveshare.com/bus-servo-adapter-a.htm)                  |
-| Camera | OAK-D S2 (driver supported) or Orbbec Gemini 2 (geometry and simulation; real driver pending) |
+| Camera | [Orbbec Gemini 2](https://www.seeedstudio.com/Orbbec-Gemini-2-3D-Camera-p-6464.html?sensecap_affiliate=8fjl172&referring_service=link) (default; real driver, geometry and simulation), or OAK-D S2 (supported alternative with driver) |
 | Structure    | 3D printed base and shoulder parts from [SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100) or [SO-ARM101](https://github.com/TheRobotStudio/SO-ARM101) |
 | Camera mount | 3D printed camera-specific bracket (STL in [`pt_description/meshes/`](pt_description/meshes/))             |
 
@@ -36,25 +36,50 @@ Both motors share one serial bus at 1 Mbaud, connected through the Waveshare dri
 
 ## Installation
 
-Requires [ROS 2 Kilted](https://docs.ros.org/en/kilted/) (other distributions are untested) and the Kilted packages for [depthai-ros](https://github.com/luxonis/depthai-ros):
+Requires [ROS 2 Kilted](https://docs.ros.org/en/kilted/). Gemini 2 uses the upstream [OrbbecSDK_ROS2](https://github.com/orbbec/OrbbecSDK_ROS2) `v2-main` branch. The official Noble/ARM64 apt index has no `ros-kilted-orbbec-camera` package as checked on 2026-09-27, so build the driver from source in the same workspace. Its system dependencies and the alternative OAK-D S2 driver can be installed with apt-get:
 
 ```bash
-sudo apt install ros-kilted-depthai-ros
+sudo apt-get update
+sudo apt-get install libgflags-dev nlohmann-json3-dev libgoogle-glog-dev libdw-dev libssl-dev \
+  ros-kilted-backward-ros ros-kilted-image-transport ros-kilted-image-transport-plugins \
+  ros-kilted-image-publisher ros-kilted-camera-info-manager ros-kilted-diagnostic-updater \
+  ros-kilted-statistics-msgs ros-kilted-xacro ros-kilted-depthai-ros
 ```
 
-Clone this repository with its dependencies into a workspace and build:
+Clone the packages and build the Orbbec driver first:
 
 ```bash
+source /opt/ros/kilted/setup.bash
 cd <your workspace>/src
 git clone https://github.com/adityakamath/pantilt_ros2.git
-git clone https://github.com/adityakamath/sts_hardware_interface.git   # servo driver (ros2_control)
-git clone https://github.com/facontidavide/cloudini.git                # point cloud compression
+git clone https://github.com/adityakamath/sts_hardware_interface.git
+git clone https://github.com/facontidavide/cloudini.git
+git clone --branch v2-main https://github.com/orbbec/OrbbecSDK_ROS2.git
+git -C OrbbecSDK_ROS2 checkout 8e7cad2bfa2c4a6ac4e779be99c64e72166043af
+git -C OrbbecSDK_ROS2 apply ../pantilt_ros2/pt_bringup/patches/orbbec-kilted-qos.patch
 cd ..
+rosdep install --from-paths src/OrbbecSDK_ROS2 --ignore-src -r -y --rosdistro kilted
+CMAKE_BUILD_PARALLEL_LEVEL=2 colcon build \
+  --packages-select orbbec_camera_msgs orbbec_description orbbec_camera \
+  --executor sequential --symlink-install \
+  --cmake-args -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DCMAKE_CXX_FLAGS=-Wno-error=cpp
+source install/setup.bash
 colcon build --packages-select cloudini_lib cloudini_ros pt_description pt_mujoco pt_control pt_bringup sts_hardware_interface
 source install/setup.bash
 ```
 
-The teleop uses [`joy_teleop`](https://index.ros.org/p/joy_teleop/), which is installed with the packages above, but the [`joy`](https://github.com/ros-drivers/joystick_drivers) node is not started for you. Run `ros2 run joy joy_node` (on this or another machine on the network) before using a controller.
+The `-Wno-error=cpp` flag allows Kilted's deprecated-header warnings. The included [QoS compatibility patch](pt_bringup/patches/orbbec-kilted-qos.patch) switches the image-sync example to the current `rclcpp::QoS` API. When using pantilt as a LeKiwi submodule, change the patch path to `../lekiwi_ros2/payloads/pantilt_ros2/pt_bringup/patches/orbbec-kilted-qos.patch`. The integration targets upstream revision `8e7cad2bfa2c4a6ac4e779be99c64e72166043af` (2.9.3).
+
+Install the [upstream USB permission rules](https://github.com/orbbec/OrbbecSDK_ROS2#registration-script-required), then reconnect the camera:
+
+```bash
+sudo cp src/OrbbecSDK_ROS2/orbbec_camera/scripts/99-obsensor-libusb.rules /etc/udev/rules.d/
+sudo udevadm control --reload-rules
+sudo udevadm trigger --subsystem-match=usb
+ros2 run orbbec_camera list_devices_node
+```
+
+The teleop uses [`joy_teleop`](https://index.ros.org/p/joy_teleop/), which is required by `pt_control`, but the [`joy`](https://github.com/ros-drivers/joystick_drivers) node is not started for you. Run `ros2 run joy joy_node` (on this or another machine on the network) before using a controller.
 
 ### Simulation (optional)
 
@@ -71,6 +96,8 @@ colcon build --packages-select mujoco_ros2_plugins
 
 ### Raspberry Pi 5
 
+The following setup applies to the alternative OAK-D S2 camera.
+
 The OAK-D S2 needs USB 3.0 and more current than the Pi 5's default 600 mA USB limit. Add this to `/boot/firmware/config.txt` and reboot:
 
 ```
@@ -86,9 +113,11 @@ pantilt_ros2 is a git submodule under `payloads/pantilt_ros2/` in [lekiwi_ros2](
 ## Running
 
 ```bash
-ros2 launch pt_bringup pantilt.launch.py                       # full system: control + camera
+ros2 launch pt_bringup pantilt.launch.py                       # control + Gemini 2 driver
+ros2 launch pt_bringup pantilt.launch.py camera_config:=oakd_s2 # control + alternative OAK-D S2 driver
 ros2 launch pt_control pantilt.launch.py                       # control only
-ros2 launch pt_bringup oakd.launch.py                          # camera only
+ros2 launch pt_bringup gemini2.launch.py                       # Gemini 2 camera only (expects the mount TF)
+ros2 launch pt_bringup oakd.launch.py                          # alternative OAK-D S2 camera only
 ros2 launch pt_control pantilt.launch.py use_mock:=true        # control without hardware
 ros2 launch pt_description urdf.launch.py                      # only the model and TF, for RViz
 ```
@@ -107,18 +136,31 @@ ros2 topic pub /pantilt_controller/commands std_msgs/msg/Float64MultiArray "{dat
 
 The button mapping is in [`pt_control/config/teleop_config.yaml`](pt_control/config/teleop_config.yaml).
 
+To keep the selected camera in the URDF while disabling its real driver and streaming pipeline:
+
+```bash
+ros2 launch pt_bringup pantilt.launch.py camera_config:=gemini2 enable_camera:=false
+ros2 launch pt_bringup pantilt.launch.py camera_config:=oakd_s2 enable_camera:=false
+```
+
+`enable_camera` defaults to `true` and affects only real-camera bringup. When false, control, the selected camera meshes and URDF TF remain available; camera-driver TF and streaming helpers are not started. It does not disable the MuJoCo simulated camera. Driver launch files are included lazily: Gemini 2 loads only Orbbec, OAK-D S2 loads only DepthAI, and disabled streaming loads neither driver. This is runtime selection; package manifests still declare dependencies for the supported features.
+
 ### Launch arguments
 
 | Argument           | Used by                    | Default         | Description |
 |--------------------|----------------------------|-----------------|-------------|
 | `sts_serial_port`  | `pt_control`, `pt_bringup` | from yaml       | Serial port; empty uses the value in `urdf_config.yaml` |
-| `use_mock`         | `pt_control`, `pt_bringup` | from yaml       | Run with simulated motors and no hardware |
-| `camera_config` | `pt_control`, `pt_bringup` | `oakd_s2` | `oakd_s2` or `gemini2`; Gemini real driver not integrated |
+| `use_mock`         | `pt_control`, `pt_bringup` | from yaml       | Mock motors only; real bringup still starts the selected camera |
+| `enable_camera` | `pt_bringup` | `true` | Enable the real camera driver and streaming pipeline; retain URDF geometry when false |
+| `camera_config` | `pt_control`, `pt_bringup` | `gemini2` | `gemini2` or `oakd_s2`; selects geometry and real camera driver |
 | `pantilt_config`   | `pt_control`, `pt_bringup` | `pt101`         | Mesh variant: `pt100` or `pt101` |
 | `diagnostics`      | `pt_control`, `pt_bringup` | `false`         | Publish motor temperature, voltage and current |
-| `pointcloud`       | `pt_bringup`               | `false`         | Aligned depth plus a compressed point cloud (higher CPU load) |
-| `octomap`          | `oakd.launch.py`           | `false`         | Build a persistent 3D octree from the point cloud (needs `pointcloud:=true`) |
-| `tf_parent_frame`  | `oakd.launch.py`           | `tilt_link`     | TF frame the camera is mounted to; change it to use the camera on a robot without the pan-tilt |
+| `pointcloud`       | `pt_bringup`               | `false`         | One colored cloud and Cloudini compression for either real camera; OAK-D S2 also aligns depth to RGB |
+| `octomap`          | `pt_bringup`               | `false`         | OAK-D S2 only: build a persistent 3D octree (needs `pointcloud:=true`); rejected for Gemini 2 |
+| `tf_parent_frame` | `pt_bringup` | empty | Full bringup selects `oak_link` for Gemini 2 or `tilt_link` for OAK-D S2 |
+| `serial_number`, `usb_port` | `pt_bringup`, `gemini2.launch.py` | empty | Optional Orbbec device selectors |
+| `camera_mount_xyz`, `camera_mount_rpy` | `pt_bringup`, `gemini2.launch.py` | `0 0 0`, `π 0 0` | Gemini mount-to-driver translation (meters) and rotation (radians); calibrate translation on hardware |
+| `publish_mount_tf` | `pt_bringup`, `gemini2.launch.py` | `true` | Disable if another component supplies the Gemini mount transform |
 | `sim`              | `pt_bringup`               | `false`         | Run in MuJoCo instead of on hardware (see [Simulation](#simulation)) |
 | `mujoco_gui`       | `pt_bringup`               | `false`         | `sim` only: open the MuJoCo viewer (needs a display) |
 | `mujoco_scene`     | `pt_control`, `pt_bringup` | `flat`          | `sim` only: `flat`, `none` or the path to a scene file |
@@ -155,15 +197,40 @@ Each motor has a centre position, in raw steps (0–4095), that maps to 0 rad in
 | [`pt_control/config/teleop_config.yaml`](pt_control/config/teleop_config.yaml) | Joystick buttons and axes |
 | [`pt_control/config/pantilt_controller.yaml`](pt_control/config/pantilt_controller.yaml) | The position controller (joints and interface); rarely changed |
 | [`pt_description/urdf/pantilt.joints.xacro`](pt_description/urdf/pantilt.joints.xacro) | Motor IDs, centre steps and joint limits (calibration) |
-| [`pt_bringup/config/oakd_vio.yaml`](pt_bringup/config/oakd_vio.yaml), `oakd_vio_pcl.yaml` | Camera resolution, frame rates and VIO settings |
+| [`pt_bringup/config/oakd_vio.yaml`](pt_bringup/config/oakd_vio.yaml), `oakd_vio_pcl.yaml` | OAK-D S2 RGB/depth/IMU profile and optional aligned cloud |
+| [`pt_bringup/config/gemini2_pcl.yaml`](pt_bringup/config/gemini2_pcl.yaml) | Gemini 2 Cloudini input, output and 1 mm resolution |
 | [`pt_bringup/config/depthimage_to_laserscan.yaml`](pt_bringup/config/depthimage_to_laserscan.yaml) | Range and height of the `/oak/scan` slice |
 
-## Camera modes
+## Gemini 2 camera
+
+The default real bringup includes the upstream `orbbec_camera/gemini2.launch.py`. It enables RGB, registered depth and synchronized accelerometer/gyroscope output, requesting 640×360 RGB and 640×400 depth at 15 Hz by default (`camera_fps` accepts 5, 10, 15 or 30). `pointcloud:=true` enables one native colored cloud and Cloudini compression at 1 mm resolution. `serial_number` and `usb_port` select a particular device.
+
+| Topic | Data |
+|-------|------|
+| `/gemini2/color/image_raw`, `/gemini2/color/camera_info` | RGB image and intrinsics |
+| `/gemini2/depth/image_raw`, `/gemini2/depth/camera_info` | Registered depth and intrinsics |
+| `/gemini2/gyro_accel/sample` | Synchronized IMU sample |
+| `/gemini2/depth_registered/points` | One colored cloud with `pointcloud:=true` |
+| `/gemini2/depth_registered/points/compressed` | Cloudini-compressed colored cloud with `pointcloud:=true` |
+
+The driver publishes its sensor TF tree below `gemini2_link`. A separate static transform attaches that root to the existing `oak_link` mount frame. Its default roll of π compensates for the inverted legacy frame; its zero translation is provisional, not a measured sensor origin. Set `camera_mount_xyz` and `camera_mount_rpy` after measuring the mount-to-sensor transform. The old `oak_imu_frame` is retained for compatibility and is not used for Gemini IMU data.
+
+```bash
+ros2 launch pt_bringup pantilt.launch.py pointcloud:=true
+# Camera alone, with no pan-tilt TF provider:
+ros2 launch pt_bringup gemini2.launch.py publish_mount_tf:=false
+```
+
+Gemini bringup does not supply VIO, a LaserScan or octomap. `octomap:=true` is rejected for Gemini rather than silently ignored. Standalone pantilt MuJoCo still uses `/oak/*` compatibility topics and nominal Gemini optics; it does not model the device's measured calibration.
+
+## OAK-D S2 camera modes
+
+These modes require `camera_config:=oakd_s2` on the full bringup, or the standalone `oakd.launch.py`. Gemini 2 uses the separate Orbbec driver described below.
 
 | Mode | What it publishes | Config |
 |------|-------------------|--------|
-| Default | RGB and depth at 640x400, 30 Hz, IMU, VIO at 60 Hz | `oakd_vio.yaml` |
-| `pointcloud:=true` | Adds an RGB-aligned depth image and a compressed point cloud, for 3D mapping | `oakd_vio_pcl.yaml` on top of the default |
+| Default | RGB and depth at 640×400 and 15 Hz, 100 Hz IMU and `/oak/scan`; VIO disabled | `oakd_vio.yaml` |
+| `pointcloud:=true` | Adds an RGB-aligned depth image, colored point cloud and Cloudini-compressed cloud, for 3D mapping | `oakd_vio_pcl.yaml` on top of the default |
 
 `/oak/scan` (a laser scan sliced from the depth image) is published in both modes. In the default mode depth is left unaligned, which avoids a `depthai_ros_driver` 3.1.0 crash and is enough for the scan. Set `DEPTHAI_DEBUG=1` for verbose driver logs. With `octomap:=true` the point clouds are accumulated into a 3D map as the pan-tilt sweeps.
 
@@ -174,7 +241,7 @@ ros2 launch pt_bringup pantilt.launch.py sim:=true                    # headless
 ros2 launch pt_bringup pantilt.launch.py sim:=true mujoco_gui:=true   # with the MuJoCo viewer
 ```
 
-The same controllers and teleop run against a MuJoCo model instead of the hardware, so the commands above work unchanged. It needs no display; to watch it from another machine, run `foxglove_bridge` and connect [Foxglove](https://foxglove.dev/) to `ws://<host>:8765`. The simulated camera publishes `/oak/rgb/image_raw`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` and `/oak/scan`, and `/emergency_stop` works as on the robot. The model is generated from the URDF by [`pt_mujoco`](pt_mujoco/README.md), which also has a standalone (no ROS) viewer and the details of the simulated servo. The servo profile is identified from a real STS3215, but the simulation as a whole has not been compared against the hardware.
+The same controllers and teleop run against a MuJoCo model instead of the hardware, so the commands above work unchanged. It needs no display; to watch it from another machine, run `foxglove_bridge` and connect [Foxglove](https://foxglove.dev/) to `ws://<host>:8765`. The standalone simulated camera publishes `/oak/rgb/image_raw`, `/oak/rgb/image_raw/compressed`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` and `/oak/scan` regardless of the selected camera geometry, and `/emergency_stop` works as on the robot. The model is generated from the URDF by [`pt_mujoco`](pt_mujoco/README.md), which also has a standalone (no ROS) viewer and the details of the simulated servo. The servo profile is identified from a real STS3215, but the simulation as a whole has not been compared against the hardware.
 
 ## Using it on another robot
 
@@ -208,9 +275,11 @@ The pan-tilt is designed to be mounted on another robot. Which way you embed it 
 </xacro:pantilt_module>
 ```
 
-Motor IDs, centres and limits come from the macro defaults, so you only pass them if your unit is calibrated differently. The launch files in this repository start their own `controller_manager`, so a shared-bus host does not include them. It runs one `controller_manager` for everything and gives the spawner this package's controller definition, [`pt_control/config/pantilt_controller.yaml`](pt_control/config/pantilt_controller.yaml), with `--param-file`. [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2) is the reference for this, including how it mounts the simulated pan-tilt in its own MuJoCo model. The camera launch file, `oakd.launch.py`, has no bus coupling and can be included directly.
+Motor IDs, centres and limits come from the macro defaults, so you only pass them if your unit is calibrated differently. The launch files in this repository start their own `controller_manager`, so a shared-bus host does not include them. It runs one `controller_manager` for everything and gives the spawner this package's controller definition, [`pt_control/config/pantilt_controller.yaml`](pt_control/config/pantilt_controller.yaml), with `--param-file`. [lekiwi_ros2](https://github.com/adityakamath/lekiwi_ros2) is the reference for this, including how it mounts the simulated pan-tilt in its own MuJoCo model. The camera-only launch files, `gemini2.launch.py` and `oakd.launch.py`, have no bus coupling and can be included directly.
 
 ## ROS interfaces
+
+Real Gemini 2 topics use `/gemini2/*` (see [Gemini 2 camera](#gemini-2-camera)). The `/oak/*` topics below belong to the alternative OAK-D S2 driver; simulation retains its compatible image and scan topics.
 
 | Topic                          | Type                                   | Description |
 |--------------------------------|----------------------------------------|-------------|
@@ -223,7 +292,7 @@ Motor IDs, centres and limits come from the macro defaults, so you only pass the
 | `/oak/stereo/image_raw`        | `sensor_msgs/Image`                    | Depth stream |
 | `/oak/scan`                    | `sensor_msgs/LaserScan`                | Laser scan sliced from the depth image |
 | `/oak/imu/data`                | `sensor_msgs/Imu`                      | IMU data |
-| `/oak/vio/transform`           | `geometry_msgs/TransformStamped`       | Visual-inertial odometry |
+| `/oak/vio/transform`           | `geometry_msgs/TransformStamped`       | Available only if VIO is enabled in the OAK-D profile; disabled by default |
 | `/oak/rgbd/points`, `/oak/rgbd/points/compressed` | `sensor_msgs/PointCloud2`, `point_cloud_interfaces/CompressedPointCloud2` | Point cloud and its 1 mm compressed version (`pointcloud:=true` only) |
 
 | Service           | Type               | Description |
@@ -237,7 +306,7 @@ base_footprint                  ← standalone root only
 └── pantilt_base_link           ← mount to the host robot when embedded
     └── shoulder_link           ← shoulder_pan_joint (±90°)
         └── tilt_link           ← tilt_joint (±90°)
-            └── oak_link        ← compatibility camera frame (Gemini optical calibration pending)
+            └── oak_link        ← compatibility mount frame; real Gemini sensor tree attaches here
                 └── oak_imu_frame
 ```
 
@@ -260,10 +329,10 @@ Camera selection is independent of the PT100/PT101 body selection:
 ros2 launch pt_bringup pantilt.launch.py pantilt_config:=pt101 camera_config:=gemini2
 ```
 
-`camera_config` accepts `oakd_s2` (the default) or `gemini2`, and is also available
+`camera_config` accepts `gemini2` (the default) or `oakd_s2` (the supported alternative), and is also available
 on `pt_control`'s `pantilt.launch.py` and the description visualization launch.
 Both cameras can be combined with either `pantilt_config:=pt100` or `pt101`.
-The MuJoCo builder accepts `--camera gemini2`; the control launch forwards the
+The MuJoCo builder defaults to Gemini 2 and accepts `--camera oakd_s2` for the alternative; the control launch forwards the
 selection when generating its simulation model.
 
 Gemini 2 uses its own `gemini2.stl` and `tilt_joint_gemini2.stl` meshes.
@@ -274,8 +343,7 @@ the bracket. The two camera mounting holes have 45 mm spacing. The Gemini body i
 180 degrees about its front-to-back mesh axis to mount upright.
 Existing `oak_link`/IMU frame names and simulated camera settings remain for
 compatibility; they are not calibrated Gemini optical/IMU properties. Real Gemini
-bringup skips the OAK driver and does not yet launch an Orbbec driver. Camera
-selection is not yet exposed by the parent LeKiwi bringup.
+bringup launches OrbbecSDK_ROS2 with native `/gemini2/*` topics and calibrated sensor TF. The mount-to-sensor translation remains provisional and must be measured for accurate registration. The parent LeKiwi bringup forwards `camera_config` to its URDF, simulation builder and selected real driver.
 
 The MuJoCo source selects `pt_mujoco/mjcf/oakd_s2_subtree.xml` or
 `pt_mujoco/mjcf/gemini2_subtree.xml` for the camera-specific tilt assembly. The

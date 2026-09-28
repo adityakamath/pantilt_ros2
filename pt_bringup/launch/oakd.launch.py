@@ -26,6 +26,10 @@ def _launch_arg_as_bool(context, name: str) -> bool:
 def generate_launch_description():
     """Declare arguments and defer camera node setup to launch_setup via OpaqueFunction."""
     declared_arguments = [
+        DeclareLaunchArgument('enable_camera', default_value='true',
+                              description='Start the camera driver and streaming helpers.'),
+        DeclareLaunchArgument('camera_fps', default_value='15',
+                              description='RGB/depth frame rate: 5, 10, 15, or 30 Hz.'),
         DeclareLaunchArgument(
             'pointcloud',
             default_value='false',
@@ -54,11 +58,16 @@ def generate_launch_description():
     def launch_setup(context, *_args, **_kwargs):
         """Start the OAK-D composable node container, layering oakd_vio_pcl.yaml on top of
         oakd_vio.yaml when pointcloud:=true."""
+        if not _launch_arg_as_bool(context, 'enable_camera'):
+            return []
         log_level = 'info'
         if context.environment.get('DEPTHAI_DEBUG') == '1':
             log_level = 'debug'
 
         pointcloud = _launch_arg_as_bool(context, 'pointcloud')
+        fps = LaunchConfiguration('camera_fps').perform(context).strip()
+        if fps not in ('5', '10', '15', '30'):
+            raise RuntimeError('camera_fps must be 5, 10, 15, or 30 for the real camera')
         octomap = _launch_arg_as_bool(context, 'octomap')
         tf_parent_frame = LaunchConfiguration('tf_parent_frame').perform(context)
 
@@ -73,7 +82,9 @@ def generate_launch_description():
                 'i_tf_parent_frame': tf_parent_frame,
                 'i_tf_camera_model': 'OAK-D-S2',
                 'i_tf_base_frame': 'oak_link',
-            }
+            },
+            'rgb': {'i_fps': float(fps)},
+            'stereo': {'i_fps': float(fps)}
         })
 
         # Build composable node list - always include OAK-D driver

@@ -71,6 +71,8 @@ class TestUrdfXacroDefaults:
         root = _process_urdf(pantilt_config)
         paths = list(_mesh_paths(root))
         assert paths, f'{pantilt_config}: no mesh references found'
+        assert 'meshes/gemini2.stl' in paths
+        assert 'meshes/tilt_joint_gemini2.stl' in paths
         for rel_path in paths:
             full_path = os.path.join(_SHARE, rel_path)
             assert os.path.isfile(full_path), f'{pantilt_config}: missing mesh {full_path}'

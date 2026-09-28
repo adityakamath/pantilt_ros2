@@ -13,8 +13,11 @@
       <body name="oak_link_model_origin" quat="0.5 0.5 0.5 0.5">
         <geom mesh="gemini2" class="visual" rgba="0.15 0.15 0.15 1.0" quat="0 0 0 1"/>
       </body>
-      <!-- RGB camera: compatibility fovy 55; Gemini optical calibration pending, 640x400 @ 30 Hz; quat is approximate, MuJoCo -Z forward differs from the ROS optical frame -->
-      <camera name="oak_rgb" fovy="55" resolution="640 400" pos="0 0 0" quat="1 0 0 0"/>
+      <!-- Gemini 2 16:9 RGB profile, nominal V55/H86; depth is rendered registered to color. -->
+      <camera name="oak_rgb" fovy="55" resolution="640 360" pos="0 0 0" quat="1 0 0 0"/>
+      <!-- Ideal co-located six-axis IMU, optical axes; device extrinsics need calibration. -->
+      <site name="gemini2_imu" pos="0 0 0" quat="0.5 0.5 0.5 0.5" size="0.001"/>
+
     </body>
   </body>
 </mujoco>

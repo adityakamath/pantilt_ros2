@@ -1,6 +1,6 @@
 # Pan Tilt Description
 
-URDF/xacro model of the Pan Tilt mechanisms - `pt100` and `pt101` (two STS3215 servos and an OAK-D S2 or Gemini 2 camera), its meshes, and a launch file for viewing it. The same files describe the standalone pan-tilt and the module that other robots embed. Everything else in the `pantilt_ros2` repository, including the MuJoCo model, is generated from this description.
+URDF/xacro model of the Pan Tilt mechanisms - `pt100` and `pt101` (two STS3215 servos and an Orbbec Gemini 2 camera by default, or the supported OAK-D S2 alternative), its meshes, and a launch file for viewing it. The same files describe the standalone pan-tilt and the module that other robots embed. Everything else in the `pantilt_ros2` repository, including the MuJoCo model, is generated from this description.
 
 ## Contents
 
@@ -22,7 +22,7 @@ URDF/xacro model of the Pan Tilt mechanisms - `pt100` and `pt101` (two STS3215 s
 ros2 launch pt_description urdf.launch.py
 ```
 
-This starts only `robot_state_publisher`, with no hardware, controllers or teleop, so you can inspect the model and TF tree in RViz or other tools. The launch file has no arguments and uses the default variant (`pt101`). To see the other variant or change a setting, expand the xacro yourself:
+This starts only `robot_state_publisher`, with no hardware, controllers or teleop, so you can inspect the model and TF tree in RViz or other tools. The launch accepts `pantilt_config:=pt100|pt101` and `camera_config:=gemini2|oakd_s2`; defaults are `pt101` and `gemini2`. You can also expand the xacro directly:
 
 ```bash
 xacro pantilt.urdf.xacro pantilt_config:=pt100
@@ -36,6 +36,7 @@ Pass these to `xacro` as `name:=value`. The launch files in `pt_control` fill th
 
 | Argument | Default | Meaning |
 |----------|---------|---------|
+| `camera_config` | `gemini2` | Camera mesh: `gemini2` or `oakd_s2` |
 | `pantilt_config` | `pt101` | Mesh variant: `pt100` (SO-ARM100 parts) or `pt101` (SO-ARM101 parts, recommended) |
 | `serial_port` | `/dev/ttySERVO` | Servo bus serial port |
 | `baud_rate` | `1000000` | Servo bus baud rate |
@@ -72,7 +73,7 @@ base_footprint                  ← standalone root only
 └── pantilt_base_link           ← mount to the host when embedded
     └── shoulder_link           ← shoulder_pan_joint
         └── tilt_link           ← tilt_joint
-            └── oak_link        ← compatibility camera frame (Gemini optical calibration pending)
+            └── oak_link        ← compatibility mount frame; real Gemini sensor tree attaches here
                 ├── oak_link_model_origin   ← mesh visual origin
                 └── oak_imu_frame
 ```
@@ -104,8 +105,8 @@ pytest test -q
 
 The tests run `xacro` as a subprocess and check the output for both variants and hardware types: that the correct hardware plugin is selected, the servo profile defaults are 65 / 50 / 0, and the velocity limits are unlimited except where a simulator enforces them.
 
-Camera geometry is selected independently with `camera_config:=oakd_s2|gemini2`
-(default `oakd_s2`), for either PT100 or PT101. Gemini 2 uses dedicated meshes and a measured camera mounting offset, while
+Camera geometry is selected independently with `camera_config:=gemini2|oakd_s2`
+(default `gemini2`), for either PT100 or PT101. Gemini 2 uses dedicated meshes and a camera-specific mesh mounting offset, while
 retaining the existing camera frame names; see the [camera variant notes](../README.md#camera-mesh-variants).
 
 Camera STL assets must omit embedded binary-STL color headers and per-face colors,
@@ -121,3 +122,5 @@ simulation sensor. The builder then synchronizes mesh origins, transforms and
 physical parameters from the URDF. Regenerate both camera sets after changing
 this description; see [the builder instructions](../pt_mujoco/README.md#gemini-2-models).
 Plain `.urdf` snapshots use `../meshes/` paths; Xacro retains ROS package paths.
+
+The real Gemini 2 driver owns calibrated sensor frames below `gemini2_link`. `pt_bringup` attaches that frame to `oak_link` with a configurable mount transform; its translation must be measured on hardware. The legacy `oak_imu_frame` is not a Gemini IMU calibration. See [Gemini 2 driver and TF](../pt_bringup/README.md#gemini-2-driver-and-tf).

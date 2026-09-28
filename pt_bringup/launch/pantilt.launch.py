@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Full Pan Tilt 100 bringup: pt_control plus the OAK-D camera (real hardware only)."""
+"""Pan-tilt control plus the selected Gemini 2 or OAK-D S2 camera driver."""
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo, OpaqueFunction
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.substitutions import FindPackageShare
@@ -21,9 +21,10 @@ def _launch_arg_as_bool(context, name: str) -> bool:
 
 
 def launch_setup(context):
-    """Include pt_control's control stack, plus either oakd (real) or nothing more (sim - MuJoCo is self-contained)."""
+    """Include control and the selected real camera; MuJoCo supplies its own camera."""
     use_mock     = LaunchConfiguration('use_mock').perform(context)
     sim          = _launch_arg_as_bool(context, 'sim')
+    enable_camera = _launch_arg_as_bool(context, 'enable_camera')
     mujoco_gui   = _launch_arg_as_bool(context, 'mujoco_gui')
     mujoco_scene = LaunchConfiguration('mujoco_scene')
     use_sim_time = LaunchConfiguration('use_sim_time').perform(context)
@@ -62,24 +63,29 @@ def launch_setup(context):
     actions = [pantilt_control_launch]
 
     camera_config = LaunchConfiguration('camera_config').perform(context)
-    if hw_type == 'real' and camera_config == 'gemini2':
-        actions.append(LogInfo(msg='Gemini 2 selected: no camera driver is launched.'))
-    if hw_type == 'real' and camera_config == 'oakd_s2':
-        oakd_launch = IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(
-                PathJoinSubstitution([
-                    FindPackageShare('pt_bringup'),
-                    'launch',
-                    'oakd.launch.py'
-                ])
-            ),
-            launch_arguments={
-                'pointcloud': LaunchConfiguration('pointcloud'),
-                'octomap': LaunchConfiguration('octomap'),
-                'tf_parent_frame': LaunchConfiguration('tf_parent_frame'),
-            }.items()
-        )
-        actions.append(oakd_launch)
+    # Construct only the selected camera include, and only when streaming is enabled.
+    # A conditional include alone can still be inspected by ROS launch argument discovery.
+    if hw_type == 'real' and enable_camera:
+        if camera_config == 'gemini2' and _launch_arg_as_bool(context, 'octomap'):
+            raise RuntimeError('Gemini 2 octomap is not integrated; use octomap:=false.')
+        parent = LaunchConfiguration('tf_parent_frame').perform(context).strip()
+        camera_args = {
+            'pointcloud': LaunchConfiguration('pointcloud'),
+            'camera_fps': LaunchConfiguration('camera_fps'),
+            'octomap': LaunchConfiguration('octomap'),
+            'tf_parent_frame': parent or ('oak_link' if camera_config == 'gemini2' else 'tilt_link'),
+        }
+        if camera_config == 'gemini2':
+            for name in ('serial_number', 'usb_port', 'publish_mount_tf',
+                         'camera_mount_xyz', 'camera_mount_rpy'):
+                camera_args[name] = LaunchConfiguration(name)
+        actions.append(IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(PathJoinSubstitution([
+                FindPackageShare('pt_bringup'), 'launch',
+                'gemini2.launch.py' if camera_config == 'gemini2' else 'oakd.launch.py',
+            ])),
+            launch_arguments=camera_args.items(),
+        ))
     # mujoco: nothing more to start, pt_control's ros2_control_node hosts the simulation
 
     return actions
@@ -89,9 +95,22 @@ def generate_launch_description():
     """Declare launch arguments and include pt_control's and pt_bringup's own launch files."""
     declared_arguments = [
         DeclareLaunchArgument(
-            'camera_config', default_value='oakd_s2', choices=['oakd_s2', 'gemini2'],
-            description='Camera geometry variant; Gemini 2 driver integration is not yet available.',
+            'camera_config', default_value='gemini2', choices=['gemini2', 'oakd_s2'],
+            description='Camera geometry and real driver selection.',
         ),
+        DeclareLaunchArgument(
+            'enable_camera', default_value='true',
+            description='Start the selected real camera driver and streaming pipeline. '
+                        'False preserves camera geometry in the URDF; simulation is unaffected.',
+        ),
+        DeclareLaunchArgument('serial_number', default_value='', description='Gemini 2 serial selector.'),
+        DeclareLaunchArgument('usb_port', default_value='', description='Gemini 2 USB port selector.'),
+        DeclareLaunchArgument('publish_mount_tf', default_value='true',
+                              description='Gemini 2: publish the mount-to-driver transform.'),
+        DeclareLaunchArgument('camera_mount_xyz', default_value='0 0 0',
+                              description='Gemini 2 mount translation in meters; calibrate on hardware.'),
+        DeclareLaunchArgument('camera_mount_rpy', default_value='3.141592653589793 0 0',
+                              description='Gemini 2 mount rotation in radians.'),
         DeclareLaunchArgument(
             'sts_serial_port',
             default_value='',
@@ -112,6 +131,8 @@ def generate_launch_description():
             default_value='pt101',
             description='Pan-tilt mesh variant: "pt100" or "pt101" (pt101 is recommended and default)',
         ),
+        DeclareLaunchArgument('camera_fps', default_value='15',
+                              description='RGB/depth frame rate for either camera: 5, 10, 15, or 30 Hz.'),
         DeclareLaunchArgument(
             'pointcloud',
             default_value='false',
@@ -125,8 +146,8 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'tf_parent_frame',
-            default_value='tilt_link',
-            description='TF frame the OAK-D S2 is mounted to; see oakd.launch.py.',
+            default_value='',
+            description='Camera parent frame; empty selects oak_link for Gemini 2 or tilt_link for OAK-D S2.',
         ),
         DeclareLaunchArgument(
             'use_sim_time',
@@ -137,7 +158,7 @@ def generate_launch_description():
             'sim',
             default_value='false',
             description='Run against MuJoCo instead of real hardware: forces use_sim_time/use_mock, '
-                        'and skips oakd (the simulated camera comes from pt_mujoco).',
+                        'and skips real camera drivers (the simulated camera comes from pt_mujoco).',
         ),
         DeclareLaunchArgument(
             'mujoco_gui',

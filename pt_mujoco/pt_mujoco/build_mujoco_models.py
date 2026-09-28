@@ -50,7 +50,7 @@ def control_package():
     return package_share('pt_control')
 
 
-def payload_urdf(variant, packages, control, camera_config='oakd_s2'):
+def payload_urdf(variant, packages, control, camera_config='gemini2'):
     """Expand pt_description's standalone URDF the way the real robot does, in mock mode."""
     motor = yaml.safe_load((control / 'config/urdf_config.yaml').read_text())
     with package_paths(packages):
@@ -153,11 +153,17 @@ def build_payload_spec(variant, urdf, payload_limits, description_dir=None):
         # The OAK-D is mounted upside down: the camera axes follow the oak_link frame (right = its
         # -Y, up = its +Z), which is rolled 180 degrees, so the image is upside down like the real one.
         camera.alt.type = mujoco.mjtOrientation.mjORIENTATION_XYAXES
-        camera.alt.xyaxes = [0, -1, 0, 0, 0, 1]
+        camera.alt.xyaxes = ([0, 1, 0, 0, 0, -1] if camera_config == 'gemini2'
+                              else [0, -1, 0, 0, 0, 1])
+    if camera_config == 'gemini2':
+        spec.add_sensor(name='gemini2_accelerometer', type=mujoco.mjtSensor.mjSENS_ACCELEROMETER,
+                        objtype=mujoco.mjtObj.mjOBJ_SITE, objname='gemini2_imu')
+        spec.add_sensor(name='gemini2_gyroscope', type=mujoco.mjtSensor.mjSENS_GYRO,
+                        objtype=mujoco.mjtObj.mjOBJ_SITE, objname='gemini2_imu')
     return spec
 
 
-def build_robot_spec(variant, description_dir=None, *, control_dir=None, camera_config='oakd_s2'):
+def build_robot_spec(variant, description_dir=None, *, control_dir=None, camera_config='gemini2'):
     """The payload alone, synced from this package's standalone URDF."""
     if variant not in VARIANTS:
         raise ValueError(f'Unknown variant: {variant}')
@@ -213,11 +219,11 @@ def compose_scene(robot, scene='flat'):
     return world
 
 
-def build_spec(variant, description_dir=None, scene='flat', *, control_dir=None, camera_config='oakd_s2'):
+def build_spec(variant, description_dir=None, scene='flat', *, control_dir=None, camera_config='gemini2'):
     return compose_scene(build_robot_spec(variant, description_dir, control_dir=control_dir, camera_config=camera_config), scene)
 
 
-def build(variant, output, absolute=False, description_dir=None, scene=True, *, control_dir=None, camera_config='oakd_s2'):
+def build(variant, output, absolute=False, description_dir=None, scene=True, *, control_dir=None, camera_config='gemini2'):
     output = Path(output).resolve()
     spec = build_spec(variant, description_dir=description_dir, scene=scene, control_dir=control_dir, camera_config=camera_config)
     for mesh in [*spec.meshes, *spec.textures]:
@@ -246,7 +252,7 @@ def build(variant, output, absolute=False, description_dir=None, scene=True, *, 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--variant', choices=VARIANTS)
-    parser.add_argument('--camera', choices=['oakd_s2', 'gemini2'], default='oakd_s2')
+    parser.add_argument('--camera', choices=['gemini2', 'oakd_s2'], default='gemini2')
     parser.add_argument('--output', type=Path)
     parser.add_argument('--absolute', action='store_true')
     parser.add_argument('--control-package', type=Path, help='Directory containing control config/ (data only)')

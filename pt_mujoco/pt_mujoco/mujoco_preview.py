@@ -112,7 +112,7 @@ CONTROLS = 'Left/Right: pan | Up/Down: tilt | Space: E-Stop | X: reset | P: paus
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--variant', choices=['pt100', 'pt101'], default='pt101')
-    parser.add_argument('--camera', choices=['oakd_s2', 'gemini2'], default='oakd_s2')
+    parser.add_argument('--camera', choices=['gemini2', 'oakd_s2'], default='gemini2')
     parser.add_argument('--control-package', type=Path)
     parser.add_argument('--description-package', type=Path)
     parser.add_argument('--scene', default='flat', help='flat, none, or scene MJCF path')

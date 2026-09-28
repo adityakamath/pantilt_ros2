@@ -24,7 +24,7 @@ JOINTS = ('shoulder_pan_joint', 'tilt_joint')
 
 
 def snapshot(variant):
-    return ROOT / 'mjcf' / f'{variant}_oakd_s2.xml'
+    return ROOT / 'mjcf' / f'{variant}_gemini2.xml'
 
 
 def runtime_from_file(path, settle=True):
@@ -79,9 +79,9 @@ def test_pan_tilt_and_optical_axes(variant):
     model, data = runtime.model, runtime.data
     camera = model.camera('oak_rgb').id
     assert np.dot(-data.cam_xmat[camera].reshape(3, 3)[:, 2], [1, 0, 0]) > .999
-    # The physical camera is mounted upside down: image up is world -Z, right is world +Y.
-    assert np.dot(data.cam_xmat[camera].reshape(3, 3)[:, 1], [0, 0, -1]) > .999
-    assert np.dot(data.cam_xmat[camera].reshape(3, 3)[:, 0], [0, 1, 0]) > .999
+    # The default Gemini camera is upright: image up is +Z, right is -Y.
+    assert np.dot(data.cam_xmat[camera].reshape(3, 3)[:, 1], [0, 0, 1]) > .999
+    assert np.dot(data.cam_xmat[camera].reshape(3, 3)[:, 0], [0, -1, 0]) > .999
     runtime.command(.6, .3)
     runtime.step(2000)
     for name, goal in zip(JOINTS, (.6, .3)):
@@ -186,7 +186,7 @@ def test_payload_frames_and_visual_meshes_match_urdf(variant, pan, tilt):
         assert np.allclose(actual, expected, atol=1e-8), name
     # Compare compiled mesh bounds with the original STL vertices transformed through the
     # URDF. This catches wrong visual offsets as well as frame-only errors.
-    for link_name, mesh_name in [('tilt_link', 'tilt_joint_oakd_s2'), ('oak_link_model_origin', 'oakd_s2')]:
+    for link_name, mesh_name in [('tilt_link', 'tilt_joint_gemini2'), ('oak_link_model_origin', 'gemini2')]:
         visual = urdf.find(f"link[@name='{link_name}']/visual")
         transform = transforms[link_name] @ _urdf_transform(visual.find('origin'))
         dtype = np.dtype([('normal', '<f4', (3,)), ('vertices', '<f4', (3, 3)), ('attribute', '<u2')])

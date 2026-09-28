@@ -24,6 +24,7 @@ def declared(package, filename='pantilt.launch.py'):
 def test_control_launch_declares_the_mujoco_arguments():
     arguments = declared('pt_control')
     assert arguments['ros2_control_hardware_type'] == 'real'
+    assert arguments['camera_config'] == 'gemini2'
     assert arguments['mujoco_scene'] == 'flat'
     assert arguments['mujoco_model'] == ''
     assert arguments['mujoco_headless'] == 'false'
@@ -32,6 +33,7 @@ def test_control_launch_declares_the_mujoco_arguments():
 def test_bringup_selects_the_viewer_with_mujoco_gui_and_defaults_to_headless():
     arguments = declared('pt_bringup')
     assert arguments['sim'] == 'false'
+    assert arguments['camera_config'] == 'gemini2'
     assert arguments['mujoco_gui'] == 'false'
     assert arguments['mujoco_scene'] == 'flat'
     assert 'gui' not in arguments

@@ -1,6 +1,6 @@
 # Pan Tilt MuJoCo
 
-MuJoCo models of the Pan Tilt mechanism (`pt100`, `pt101`) with OAK-D S2 or Orbbec Gemini 2 camera geometry, generated from the URDF in `pt_description`. The package gives you three ways to use them:
+MuJoCo models of the Pan Tilt mechanism (`pt100`, `pt101`) with Orbbec Gemini 2 camera geometry by default, or the supported OAK-D S2 alternative, generated from the URDF in `pt_description`. The package gives you three ways to use them:
 
 - **Standalone:** a native viewer, a model builder and a benchmark, with no ROS needed.
 - **ROS simulation:** `sim:=true` runs the same controllers and teleop as the real pan-tilt against the model in `mujoco_ros2_control`.
@@ -40,7 +40,7 @@ python3 -m pt_mujoco.benchmark_mujoco --output step_response.json
 
 In the viewer, click the window first, then use Left/Right for pan, Up/Down for tilt, Space to toggle the emergency stop (disables torque on both motors, matching `mujoco_ros2_plugins/EmergencyStopPlugin`'s real behavior - the pan-tilt drifts freely rather than holding), X to reset and P to pause. The same tools are installed as commands (`ros2 run pt_mujoco <tool>` or `pip install -e .`).
 
-Always build models with `build_mujoco_models` rather than plain xacro: it takes frames, mesh origins, inertias and joint limits from the URDF. `--scene` selects the environment (`flat`, `none` or a scene file). With no arguments it regenerates the committed `mjcf/pt100_oakd_s2.xml` and `mjcf/pt101_oakd_s2.xml`, for the default camera. Also run with `--camera gemini2` after any change to the URDF, config or MJCF to refresh all four models.
+Always build models with `build_mujoco_models` rather than plain xacro: it takes frames, mesh origins, inertias and joint limits from the URDF. `--scene` selects the environment (`flat`, `none` or a scene file). With no arguments it regenerates the committed `mjcf/pt100_gemini2.xml` and `mjcf/pt101_gemini2.xml`, for the default camera. Also run with `--camera oakd_s2` after any change to the URDF, config or MJCF to refresh all four models.
 
 From Python:
 
@@ -74,12 +74,12 @@ ros2 topic pub /pantilt_controller/commands std_msgs/msg/Float64MultiArray "{dat
 | Topic or service | What it is |
 |---|---|
 | `/joint_states`, `/pantilt_controller/commands` | Same as the real robot, from ros2_control on the simulated motors |
-| `/oak/rgb/image_raw`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` | Compatibility camera in frame `oak_rgb_camera_optical_frame`; OAK optical settings are retained for both geometries pending Gemini calibration |
+| `/oak/rgb/image_raw`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` | Compatibility camera in frame `oak_rgb_camera_optical_frame`; Gemini geometry uses a nominal 640×360 RGB view, without measured Gemini intrinsics |
 | `/oak/rgb/image_raw/compressed` | Compressed version of the RGB image |
 | `/oak/scan` | Laser scan sliced from the depth image, as on the real bringup |
 | `/emergency_stop` (`std_srvs/SetBool`) | While enabled, torque is disabled on both motors and commands are ignored, matching the real robot's `sts_hardware_interface`; the pan-tilt drifts freely rather than holding position; releasing it hands control back |
 
-The camera is set to the real pipeline's 30 Hz. Headless rendering on a Raspberry Pi 5 delivered about 19 Hz, with the simulation still running in real time.
+The standalone MuJoCo camera plugin requests 30 Hz for both camera geometries; real camera bringup defaults to 15 Hz. A previous headless Raspberry Pi 5 run delivered about 19 Hz while the simulation stayed in real time; actual throughput depends on the scene and host.
 
 ## Configuration
 
@@ -121,7 +121,7 @@ The launch arguments are covered by `pt_control/test/test_launch.py`.
 
 ## Gemini 2 models
 
-All standalone tools accept `--camera gemini2` (default `oakd_s2`):
+All standalone tools default to Gemini 2 and accept `--camera oakd_s2` for the supported alternative. Explicit Gemini 2 examples:
 
 ```sh
 python3 -m pt_mujoco.mujoco_preview --variant pt101 --camera gemini2
@@ -138,16 +138,24 @@ python3 -m pt_mujoco.build_mujoco_models --camera gemini2
 ```
 
 This produces `mjcf/pt{100,101}_{oakd_s2,gemini2}.xml` with portable mesh paths.
-Python callers pass `camera_config="gemini2"` to `build`, `build_spec`, or
+Python callers default to `camera_config="gemini2"` and can pass `camera_config="oakd_s2"` to `build`, `build_spec`, or
 `build_robot_spec`. Host payload construction derives the mesh choice from its URDF.
 The Gemini camera flip, seating offset and centered tilt mount come from Xacro;
 the camera is charcoal and the bracket uses the shared light-grey material.
 
-The simulated sensor still uses OAK frame/topic names, image orientation, resolution,
-and field of view. These are compatibility settings, not a calibrated Gemini 2
-sensor model. Camera inertia and optical/IMU calibration remain future work.
+The simulated sensor still uses OAK frame/topic names for compatibility. The Gemini model has a nominal 640×360 RGB view and ideal co-located IMU sensors, not measured Gemini intrinsics or extrinsics. Camera inertia and hardware calibration remain future work.
 `--model` in the viewer uses the supplied model as-is rather than applying `--camera`.
 
 `mjcf/oakd_s2_subtree.xml` and `mjcf/gemini2_subtree.xml` define the camera-specific
 tilt assemblies. The builder selects the subtree from the URDF camera mesh, then
 synchronizes transforms and geometry from the URDF as before.
+
+Real Gemini 2 bringup uses OrbbecSDK_ROS2 with native `/gemini2/*` topics and device calibration. These differ from the simulated `/oak/*` compatibility camera; the real driver is never launched in simulation. See [real camera bringup](../README.md#gemini-2-camera).
+
+
+The Gemini 2 generated model uses a nominal 640×360, 55° vertical RGB view
+(approximately 86° horizontal), upright at the home pose, plus co-located
+`gemini2_accelerometer` and `gemini2_gyroscope` sensors. These ideal sensor
+extrinsics are not hardware calibration. LeKiwi bringup configures the SDK-style
+RGB/depth, pointcloud and synchronized IMU publishers; the renderer's internal
+camera name remains `oak_rgb` for plugin compatibility.

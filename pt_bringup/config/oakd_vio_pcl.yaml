@@ -11,7 +11,7 @@
       i_aligned: true  # depth aligned to RGB, so point cloud colors line up with geometry
       # Pinned: decimation crashes this profile with i_aligned/i_enable_rgbd
       i_enable_decimation_filter: false
-      i_fps: 30.0  # must match rgb's rate or depth/scan/rgbd silently stop publishing
+      i_fps: 15.0  # must match RGB; camera_fps overrides both at launch
 
 # Cloudini compression of /oak/rgbd/points at 1 mm resolution
 /cloudini_compressor:

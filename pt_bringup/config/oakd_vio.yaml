@@ -7,20 +7,20 @@
       i_nn_type: none
       i_pipeline_type: RGBD
       i_enable_imu: true
-      i_enable_vio: true
+      i_enable_vio: false  # LeKiwi Nav2 uses base odometry, not the OAK VIO stream
     vio:
-      i_fps: 60.0
+      i_fps: 30.0
       i_publish_tf: false
     rgb:
-      i_fps: 30.0
+      i_fps: 15.0
       i_width: 640
       i_height: 400
       i_low_bandwidth: true
       i_low_bandwidth_quality: 50
       i_publish_topic: true
     imu:
-      i_acc_freq: 400
-      i_gyro_freq: 400
+      i_acc_freq: 100
+      i_gyro_freq: 100
       i_max_batch_reports: 10
       i_batch_report_threshold: 1
       i_enable_rotation: false
@@ -30,6 +30,7 @@
     right:
       i_publish_topic: false
     stereo:
+      i_fps: 15.0
       i_depth_preset: FAST_ACCURACY
       i_publish_topic: true
       i_publish_left_rect: false

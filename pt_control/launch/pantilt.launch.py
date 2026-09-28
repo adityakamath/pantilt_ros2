@@ -219,8 +219,8 @@ def generate_launch_description():
     """Declare control-stack launch arguments and launch via launch_setup."""
     declared_arguments = [
         DeclareLaunchArgument(
-            'camera_config', default_value='oakd_s2', choices=['oakd_s2', 'gemini2'],
-            description='Camera geometry variant; Gemini 2 driver integration is not yet available.',
+            'camera_config', default_value='gemini2', choices=['gemini2', 'oakd_s2'],
+            description='Camera geometry variant; pt_bringup starts the corresponding real camera driver.',
         ),
         DeclareLaunchArgument(
             'sts_serial_port',

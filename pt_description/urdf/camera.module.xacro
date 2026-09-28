@@ -9,7 +9,7 @@
 											   cam_pos_x cam_pos_y cam_pos_z 
 											   cam_roll cam_pitch cam_yaw 
 											   r:=0.1 g:=0.1 b:=0.1 a:=1.0 simulation:=false 
-											   imu_frame:=oak_imu_frame mesh_file:=oakd_s2.stl mesh_yaw:=0">
+											   imu_frame:=oak_imu_frame mesh_file:=gemini2.stl mesh_yaw:=${pi}">
 
 		<!-- File prefix for mesh location -->
 		<xacro:if value="${simulation}">

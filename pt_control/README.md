@@ -35,7 +35,7 @@ This is the dedicated-bus setup: it runs its own controller manager on its own s
 | `sts_serial_port` | `""` | Serial port; empty uses `urdf_config.yaml` |
 | `use_mock` | `""` | `true` or `false`; empty uses `urdf_config.yaml` |
 | `diagnostics` | `false` | Also start the motor diagnostics node (`/base/diagnostics`) |
-| `camera_config` | `oakd_s2` | Camera geometry: `oakd_s2` or `gemini2`; selects the corresponding MuJoCo subtree |
+| `camera_config` | `gemini2` | Camera geometry: `gemini2` or `oakd_s2`; selects the corresponding MuJoCo subtree |
 | `pantilt_config` | `pt101` | Mesh variant, `pt100` or `pt101` |
 | `use_sim_time` | `false` | Use `/clock` instead of system time |
 | `ros2_control_hardware_type` | `real` | `real` or `mujoco` (`gazebo` exists in the xacro but is not wired into this launch file) |
@@ -83,16 +83,14 @@ The tests check the launch arguments (including the simulation ones), that the s
 ## Camera selection
 
 Pass `camera_config:=gemini2` independently of `pantilt_config:=pt100|pt101`.
-The default is `oakd_s2`. The same selection is forwarded to URDF generation and,
+The default is `gemini2`; pass `camera_config:=oakd_s2` for the supported OAK-D S2 alternative. The same selection is forwarded to URDF generation and,
 in simulation, to the MuJoCo builder. An explicit `mujoco_model` overrides model
 building and must already match the selected camera geometry.
 
 Gemini 2 uses its own camera and tilt-mount meshes, aligned mounting faces, equal
 motor-side clearance, and the upright camera-body rotation. Camera/IMU frame names
-remain compatible with the existing OAK pipeline. Real Gemini bringup does not
-launch a camera driver; Orbbec integration and optical/IMU calibration are pending.
-OAK-specific pointcloud, octomap and camera-driver settings apply only to OAK.
+remain available for compatibility. `pt_bringup` starts the upstream Orbbec driver for real Gemini hardware; `pt_control` alone starts no real camera. The driver uses native `/gemini2/*` topics and calibrated sensor TF, with a configurable mount transform. See [Gemini 2 bringup](../README.md#gemini-2-camera). Cloudini compression is available for both real cameras when `pointcloud:=true`. Scan and octomap apply only to OAK-D S2; its VIO is disabled by default.
 
 The generated simulation uses `oakd_s2_subtree.xml` or `gemini2_subtree.xml`,
 with mounting transforms synchronized from the selected URDF. Both retain the
-existing `/oak/*` topics and OAK optical settings until Gemini calibration is added.
+existing `/oak/*` compatibility topics. The Gemini model uses a nominal 640×360, 55° vertical view; its optical and IMU extrinsics are not hardware calibration.

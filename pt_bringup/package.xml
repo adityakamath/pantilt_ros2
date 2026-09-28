@@ -3,7 +3,7 @@
 <package format="3">
   <name>pt_bringup</name>
   <version>0.1.0</version>
-  <description>Bringup launch files and camera configuration for the Pan Tilt 100 with its OAK-D S2</description>
+  <description>Pan-tilt bringup with the Orbbec Gemini 2 driver by default and OAK-D S2 support</description>
   <author email="adityakamath@live.com">Aditya Kamath</author>
   <maintainer email="adityakamath@live.com">Aditya Kamath (Kamath Robotics)</maintainer>
   <license>Apache-2.0</license>
@@ -27,6 +27,8 @@
   <exec_depend>launch_ros</exec_depend>
   <exec_depend>pt_control</exec_depend>
   <exec_depend>depthai_ros_driver</exec_depend>
+  <exec_depend>orbbec_camera</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
   <exec_depend>depthimage_to_laserscan</exec_depend>
   <exec_depend>octomap_server</exec_depend>
 

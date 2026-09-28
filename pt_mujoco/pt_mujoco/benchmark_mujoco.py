@@ -12,7 +12,7 @@ from pt_mujoco.build_mujoco_models import VARIANTS, build
 from pt_mujoco.simulation import PAYLOAD, Simulation
 
 
-def benchmark(directory, camera_config='oakd_s2'):
+def benchmark(directory, camera_config='gemini2'):
     rows = []
     steps = [('pan_positive', 0, .6), ('pan_negative', 0, -.6), ('tilt_positive', 1, .3), ('tilt_negative', 1, -.3)]
     for variant in VARIANTS:
@@ -40,7 +40,7 @@ def benchmark(directory, camera_config='oakd_s2'):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--camera', choices=['oakd_s2', 'gemini2'], default='oakd_s2')
+    parser.add_argument('--camera', choices=['gemini2', 'oakd_s2'], default='gemini2')
     parser.add_argument('--control-package', type=Path)
     parser.add_argument('--description-package', type=Path)
     parser.add_argument('--output', type=Path, required=True)

@@ -38,6 +38,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         DeclareLaunchArgument('pantilt_config', default_value='pt101', choices=['pt100', 'pt101']),
-        DeclareLaunchArgument('camera_config', default_value='oakd_s2', choices=['oakd_s2', 'gemini2']),
+        DeclareLaunchArgument('camera_config', default_value='gemini2', choices=['gemini2', 'oakd_s2']),
         robot_state_publisher_node,
     ])

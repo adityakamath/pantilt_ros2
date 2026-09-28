@@ -1,0 +1,7 @@
+# Cloudini compression of the registered, colored Gemini 2 point cloud at 1 mm resolution.
+/gemini2_cloudini_compressor:
+  ros__parameters:
+    compressing: true
+    topic_input: "/gemini2/depth_registered/points"
+    topic_output: "/gemini2/depth_registered/points/compressed"
+    resolution: 0.001

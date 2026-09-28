@@ -66,7 +66,8 @@
             <geom class="collision" pos="0.119 0.0758 -0.000425" quat="0.5 0.5 -0.5 0.5" mass="0" mesh="tilt_joint_gemini2"/>
             <body name="oak_link" pos="-0.0306 -0.0068941 -0.000225" quat="0.5 -0.5 0.5 -0.5">
               <inertial pos="0 0 0" mass="0" diaginertia="0 0 0"/>
-              <camera name="oak_rgb" quat="-0.5 -0.5 0.5 0.5" resolution="640 400" fovy="55"/>
+              <site name="gemini2_imu" size="0.001" quat="0.5 0.5 0.5 0.5"/>
+              <camera name="oak_rgb" quat="0.5 -0.5 -0.5 0.5" resolution="640 360" fovy="55"/>
               <body name="oak_link_model_origin" quat="0.5 0.5 0.5 0.5">
                 <inertial pos="0 0 0" mass="0" diaginertia="0 0 0"/>
                 <geom class="visual" quat="0 0 0 1" rgba="0.15 0.15 0.15 1" mesh="gemini2"/>
@@ -87,6 +88,11 @@
     <general name="shoulder_pan_joint" class="pt_sts3215" joint="shoulder_pan_joint" ctrlrange="-1.5708 1.5708" ctrllimited="true" forcelimited="true" forcerange="-2.942 2.942"/>
     <general name="tilt_joint" class="pt_sts3215" joint="tilt_joint" ctrlrange="-1.5708 1.5708" ctrllimited="true" forcelimited="true" forcerange="-2.942 2.942"/>
   </actuator>
+
+  <sensor>
+    <accelerometer site="gemini2_imu" name="gemini2_accelerometer"/>
+    <gyro site="gemini2_imu" name="gemini2_gyroscope"/>
+  </sensor>
 
   <custom>
     <numeric name="velocity_limit_shoulder_pan_joint" size="1" data="4.4332"/>
