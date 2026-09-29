@@ -216,8 +216,9 @@ def test_camera_only_launch_skips_all_dependencies_when_disabled(filename, monke
 
 
 @pytest.mark.parametrize('pointcloud', ['false', 'true'])
-def test_oak_shared_rate_overrides_rgb_and_depth(pointcloud):
+def test_oak_shared_rate_overrides_rgb_and_depth(pointcloud, monkeypatch):
     module = load('oakd.launch.py')
+    monkeypatch.setattr(module, 'get_package_share_directory', lambda package: str(ROOT / package))
     context = context_for(module, camera_fps='10', pointcloud=pointcloud)
     container = module.generate_launch_description().entities[-1].execute(context)[0]
     driver = container._ComposableNodeContainer__composable_node_descriptions[0]
