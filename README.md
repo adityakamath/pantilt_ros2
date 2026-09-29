@@ -37,15 +37,17 @@ Both motors share one serial bus at 1 Mbaud, connected through the Waveshare dri
 
 ## Installation
 
-Requires [ROS 2 Kilted](https://docs.ros.org/en/kilted/). Gemini 2 uses the upstream [OrbbecSDK_ROS2](https://github.com/orbbec/OrbbecSDK_ROS2) `v2-main` branch. The official Noble/ARM64 apt index has no `ros-kilted-orbbec-camera` package, as checked on 2026-09-27, so build the driver from source in the same workspace. Its system dependencies and the alternative OAK-D S2 driver can be installed with apt-get:
+Requires [ROS 2 Kilted](https://docs.ros.org/en/kilted/). The stack supports two cameras: Gemini 2 is the default and recommended choice; select OAK-D S2 with `camera_config:=oakd_s2`. The launch configuration starts the selected camera driver. Gemini 2 uses the upstream [OrbbecSDK_ROS2](https://github.com/orbbec/OrbbecSDK_ROS2) `v2-main` branch. The official Noble/ARM64 apt index has no `ros-kilted-orbbec-camera` package, as checked on 2026-09-27, so its driver must be built from source. Install the Gemini driver system dependencies with apt-get:
 
 ```bash
 sudo apt-get update
 sudo apt-get install libgflags-dev nlohmann-json3-dev libgoogle-glog-dev libdw-dev libssl-dev \
   ros-kilted-backward-ros ros-kilted-image-transport ros-kilted-image-transport-plugins \
   ros-kilted-image-publisher ros-kilted-camera-info-manager ros-kilted-diagnostic-updater \
-  ros-kilted-statistics-msgs ros-kilted-xacro ros-kilted-depthai-ros
+  ros-kilted-statistics-msgs ros-kilted-xacro
 ```
+
+### Gemini 2
 
 Clone the packages and build the Orbbec driver first:
 
@@ -79,6 +81,29 @@ sudo udevadm control --reload-rules
 sudo udevadm trigger --subsystem-match=usb
 ros2 run orbbec_camera list_devices_node
 ```
+
+### OAK-D S2
+
+The OAK-D S2 uses the packaged DepthAI ROS driver. Install it with:
+
+```bash
+sudo apt-get install ros-kilted-depthai-ros
+```
+
+No camera SDK source build, Orbbec QoS patch or Orbbec USB rules are needed. Clone the shared packages and build them:
+
+```bash
+source /opt/ros/kilted/setup.bash
+cd <your workspace>/src
+git clone https://github.com/adityakamath/pantilt_ros2.git
+git clone https://github.com/adityakamath/sts_hardware_interface.git
+git clone https://github.com/facontidavide/cloudini.git
+cd ..
+colcon build --packages-select cloudini_lib cloudini_ros pt_description pt_mujoco pt_control pt_bringup sts_hardware_interface
+source install/setup.bash
+```
+
+Select the OAK-D S2 at launch with `camera_config:=oakd_s2`. On a Raspberry Pi 5, also apply the OAK-D USB-current setting under [Raspberry Pi 5](#raspberry-pi-5).
 
 The teleop uses [`joy_teleop`](https://index.ros.org/p/joy_teleop/), which is required by `pt_control`, but the [`joy`](https://github.com/ros-drivers/joystick_drivers) node is not started for you. Run `ros2 run joy joy_node` (on this or another machine on the network) before using a controller.
 
