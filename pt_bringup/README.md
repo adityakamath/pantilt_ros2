@@ -7,12 +7,13 @@ System-level launch files for the Pan Tilt mechanism (`pt100`, `pt101`): the ful
 | Path | Purpose |
 |------|---------|
 | `launch/pantilt.launch.py` | Full system: includes `pt_control`'s launch file and the selected real camera driver; simulation skips both drivers |
-| `launch/gemini2.launch.py` | Upstream Orbbec Gemini 2 RGB/depth/IMU driver, optional colored cloud and Cloudini compression, and configurable mount TF |
+| `launch/gemini2.launch.py` | Upstream Orbbec Gemini 2 RGB/depth/IMU driver, a depth-derived `/gemini2/scan`, optional colored cloud and Cloudini compression, and configurable mount TF |
 | `launch/oakd.launch.py` | The OAK-D S2 driver, the `/oak/scan` slice and the optional point cloud and octomap nodes, in one composable node container |
 | `config/oakd_vio.yaml` | Camera base profile: RGB, depth and IMU; VIO and point cloud disabled |
 | `config/oakd_vio_pcl.yaml` | OAK-D overlay for `pointcloud:=true`: aligned depth, RGBD point cloud and its compression |
 | `config/gemini2_pcl.yaml` | Gemini 2 Cloudini input, output and resolution when `pointcloud:=true` |
-| `config/depthimage_to_laserscan.yaml` | The `/oak/scan` slice |
+| `config/depthimage_to_laserscan.yaml` | The `/oak/scan` depth slice |
+| `config/gemini2_depth_to_scan.yaml` | The `/gemini2/scan` depth slice |
 | `config/octomap.yaml` | `octomap_server` settings |
 | `patches/orbbec-kilted-qos.patch` | Kilted QoS API compatibility fix for the pinned upstream image-sync example |
 | `src/pcl_compressor_node.cpp` | Composable node that compresses the point cloud with [cloudini](https://github.com/facontidavide/cloudini) |
@@ -108,7 +109,7 @@ model building and must already match the selected camera geometry.
 
 Gemini 2 uses its own camera and tilt-mount meshes, aligned mounting faces, equal
 motor-side clearance, and the upright camera-body rotation. Camera/IMU frame names
-remain available for compatibility. Real Gemini bringup uses the upstream Orbbec driver and its native sensor frames. See [Gemini 2 topics and calibration](../README.md#gemini-2-camera). Scan and octomap remain OAK-only; both real cameras support Cloudini compression, and OAK VIO is disabled by default; Gemini rejects `octomap:=true`.
+remain available for compatibility. Real Gemini bringup uses the upstream Orbbec driver and its native sensor frames. See [Gemini 2 topics and calibration](../README.md#gemini-2-camera). Both real cameras publish depth-derived scans and support Cloudini compression. Octomap remains OAK-only, and Gemini rejects `octomap:=true`. OAK VIO is disabled by default.
 
 For simulation, `camera_config` selects `oakd_s2_subtree.xml` or
 `gemini2_subtree.xml` through the builder. See the [MuJoCo camera documentation](../pt_mujoco/README.md#gemini-2-models)
@@ -116,7 +117,7 @@ for regeneration, standalone tools, and the remaining simulated sensor limitatio
 
 ## Gemini 2 driver and TF
 
-`gemini2.launch.py` includes the upstream driver with namespace `gemini2`, RGB and registered depth enabled, IR disabled, and synchronized accelerometer/gyroscope output enabled. The Pi-oriented defaults request 640×360 RGB and 640×400 depth at 15 Hz; `camera_fps` selects 5, 10, 15 or 30 Hz. `pointcloud:=true` enables only `/gemini2/depth_registered/points`; uncolored `/gemini2/depth/points` stays off. Cloudini also publishes `/gemini2/depth_registered/points/compressed` at 1 mm resolution. It provides no VIO or scan.
+`gemini2.launch.py` includes the upstream driver with namespace `gemini2`, RGB and registered depth enabled, IR disabled, and synchronized accelerometer/gyroscope output enabled. The Pi-oriented defaults request 640×360 RGB and 640×400 depth at 15 Hz; `camera_fps` selects 5, 10, 15 or 30 Hz. `pointcloud:=true` enables only `/gemini2/depth_registered/points`; uncolored `/gemini2/depth/points` stays off. Cloudini also publishes `/gemini2/depth_registered/points/compressed` at 1 mm resolution. It provides no VIO. `/gemini2/scan` is generated directly from the depth image in both point-cloud modes; publishing a cloud is unnecessary for the scan.
 
 The upstream driver owns all calibrated sensor transforms below `gemini2_link`. This wrapper only publishes `tf_parent_frame -> gemini2_link`; standalone `tf_parent_frame` defaults to `oak_link`. The zero translation is provisional, and the default π roll corrects the legacy inverted mount orientation. Measure the physical sensor offset before relying on cloud-to-robot registration. The old URDF `oak_imu_frame` is not used by the real driver.
 

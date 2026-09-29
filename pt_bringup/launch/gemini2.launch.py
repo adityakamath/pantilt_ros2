@@ -66,7 +66,21 @@ def launch_setup(context):
             'publish_tf': 'true',
         }.items(),
     )
-    actions = [driver]
+    # Convert depth directly in both point-cloud modes; a cloud is not needed for a 2D scan.
+    actions = [driver, Node(
+        package='depthimage_to_laserscan',
+        executable='depthimage_to_laserscan_node',
+        name='gemini2_depth_to_scan',
+        output='log',
+        parameters=[PathJoinSubstitution([
+            FindPackageShare('pt_bringup'), 'config', 'gemini2_depth_to_scan.yaml',
+        ])],
+        remappings=[
+            ('depth', '/gemini2/depth/image_raw'),
+            ('depth_camera_info', '/gemini2/depth/camera_info'),
+            ('scan', '/gemini2/scan'),
+        ],
+    )]
     if pointcloud == 'true':
         actions.append(ComposableNodeContainer(
             name='gemini2_cloudini_container',

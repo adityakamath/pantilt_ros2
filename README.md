@@ -210,6 +210,7 @@ The default real bringup includes the upstream `orbbec_camera/gemini2.launch.py`
 | `/gemini2/color/image_raw`, `/gemini2/color/camera_info` | RGB image and intrinsics |
 | `/gemini2/depth/image_raw`, `/gemini2/depth/camera_info` | Registered depth and intrinsics |
 | `/gemini2/gyro_accel/sample` | Synchronized IMU sample |
+| `/gemini2/scan` | LaserScan generated directly from the depth image in both point-cloud modes |
 | `/gemini2/depth_registered/points` | One colored cloud with `pointcloud:=true` |
 | `/gemini2/depth_registered/points/compressed` | Cloudini-compressed colored cloud with `pointcloud:=true` |
 
@@ -221,7 +222,7 @@ ros2 launch pt_bringup pantilt.launch.py pointcloud:=true
 ros2 launch pt_bringup gemini2.launch.py publish_mount_tf:=false
 ```
 
-Gemini bringup does not supply VIO, a LaserScan or octomap. `octomap:=true` is rejected for Gemini rather than silently ignored. Standalone pantilt MuJoCo still uses `/oak/*` compatibility topics and nominal Gemini optics; it does not model the device's measured calibration.
+Gemini bringup does not supply VIO or octomap. `octomap:=true` is rejected for Gemini rather than silently ignored. Standalone pantilt MuJoCo still uses `/oak/*` compatibility topics and nominal Gemini optics; it does not model the device's measured calibration.
 
 ## OAK-D S2 camera modes
 

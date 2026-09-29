@@ -77,12 +77,17 @@ def test_gemini_streams_and_pointcloud_selection(pointcloud):
     module = load('gemini2.launch.py')
     context = context_for(module, pointcloud=pointcloud, serial_number='test-serial')
     actions = module.launch_setup(context)
-    assert len(actions) == (3 if pointcloud == 'true' else 2)
-    driver, mount = actions[0], actions[-1]
+    assert len(actions) == (4 if pointcloud == 'true' else 3)
+    driver, depth_to_scan, mount = actions[0], actions[1], actions[-1]
+    assert depth_to_scan.node_package == 'depthimage_to_laserscan'
+    remappings = {(perform_substitutions(context, source), perform_substitutions(context, target))
+                  for source, target in depth_to_scan._Node__remappings}
+    assert ('depth', '/gemini2/depth/image_raw') in remappings
+    assert ('scan', '/gemini2/scan') in remappings
     if pointcloud == 'true':
         from launch_ros.actions import ComposableNodeContainer
-        assert isinstance(actions[1], ComposableNodeContainer)
-        compressor = actions[1]._ComposableNodeContainer__composable_node_descriptions[0]
+        assert isinstance(actions[2], ComposableNodeContainer)
+        compressor = actions[2]._ComposableNodeContainer__composable_node_descriptions[0]
         assert perform_substitutions(context, compressor.package) == 'pt_bringup'
         assert perform_substitutions(context, compressor.node_plugin) == 'pt_bringup::PCLCompressorNode'
     arguments = resolved_arguments(driver, context)
@@ -113,7 +118,7 @@ def test_gemini_streams_and_pointcloud_selection(pointcloud):
 def test_mount_transform_can_be_owned_by_another_robot():
     module = load('gemini2.launch.py')
     context = context_for(module, publish_mount_tf='false')
-    assert len(module.launch_setup(context)) == 1
+    assert len(module.launch_setup(context)) == 2
 
 
 @pytest.mark.parametrize('overrides', [
