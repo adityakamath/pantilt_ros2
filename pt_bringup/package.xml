@@ -25,6 +25,7 @@
   <!-- Launch files -->
   <exec_depend>launch</exec_depend>
   <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
   <exec_depend>pt_control</exec_depend>
   <exec_depend>depthai_ros_driver</exec_depend>
   <exec_depend>orbbec_camera</exec_depend>
