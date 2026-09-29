@@ -29,7 +29,7 @@ ROS 2 software stack for a 2-DOF pan-tilt camera mount built from [SO-100 or SO-
 | Pan motor    | [Feetech STS3215](https://www.feetechrc.com/2020-05-13_56655.html), motor ID `1`                    |
 | Tilt motor   | Feetech STS3215, motor ID `2`                                                                       |
 | Servo driver | [Waveshare Bus Servo Adapter A](https://www.waveshare.com/bus-servo-adapter-a.htm)                  |
-| Camera | [Orbbec Gemini 2](https://www.seeedstudio.com/Orbbec-Gemini-2-3D-Camera-p-6464.html?sensecap_affiliate=8fjl172&referring_service=link) (default; real driver, geometry and simulation), or OAK-D S2 (supported alternative with driver) |
+| Camera | [Orbbec Gemini 2](https://www.seeedstudio.com/Orbbec-Gemini-2-3D-Camera-p-6464.html?sensecap_affiliate=8fjl172&referring_service=link) (default; real driver, geometry and simulation), or a [Luxonis OAK-D S2](https://docs.luxonis.com/hardware/products/OAK-D%20S2) (supported alternative with driver) |
 | Structure    | 3D printed base and shoulder parts from [SO-ARM100](https://github.com/TheRobotStudio/SO-ARM100) or [SO-ARM101](https://github.com/TheRobotStudio/SO-ARM101) |
 | Camera mount | 3D printed camera-specific bracket (STL in [`pt_description/meshes/`](pt_description/meshes/))             |
 
@@ -37,7 +37,7 @@ Both motors share one serial bus at 1 Mbaud, connected through the Waveshare dri
 
 ## Installation
 
-Requires [ROS 2 Kilted](https://docs.ros.org/en/kilted/). Gemini 2 uses the upstream [OrbbecSDK_ROS2](https://github.com/orbbec/OrbbecSDK_ROS2) `v2-main` branch. The official Noble/ARM64 apt index has no `ros-kilted-orbbec-camera` package as checked on 2026-09-27, so build the driver from source in the same workspace. Its system dependencies and the alternative OAK-D S2 driver can be installed with apt-get:
+Requires [ROS 2 Kilted](https://docs.ros.org/en/kilted/). Gemini 2 uses the upstream [OrbbecSDK_ROS2](https://github.com/orbbec/OrbbecSDK_ROS2) `v2-main` branch. The official Noble/ARM64 apt index has no `ros-kilted-orbbec-camera` package, as checked on 2026-09-27, so build the driver from source in the same workspace. Its system dependencies and the alternative OAK-D S2 driver can be installed with apt-get:
 
 ```bash
 sudo apt-get update
@@ -69,7 +69,7 @@ colcon build --packages-select cloudini_lib cloudini_ros pt_description pt_mujoc
 source install/setup.bash
 ```
 
-The `-Wno-error=cpp` flag allows Kilted's deprecated-header warnings. The included [QoS compatibility patch](pt_bringup/patches/orbbec-kilted-qos.patch) switches the image-sync example to the current `rclcpp::QoS` API. When using pantilt as a LeKiwi submodule, change the patch path to `../lekiwi_ros2/payloads/pantilt_ros2/pt_bringup/patches/orbbec-kilted-qos.patch`. The integration targets upstream revision `8e7cad2bfa2c4a6ac4e779be99c64e72166043af` (2.9.3).
+The `-Wno-error=cpp` flag allows Kilted's deprecated-header warnings. The included [QoS compatibility patch](pt_bringup/patches/orbbec-kilted-qos.patch) switches the image-sync example to the current `rclcpp::QoS` API. 
 
 Install the [upstream USB permission rules](https://github.com/orbbec/OrbbecSDK_ROS2#registration-script-required), then reconnect the camera:
 
