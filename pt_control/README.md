@@ -66,7 +66,7 @@ The sticks set absolute positions, not speeds. The velocity of the motion comes 
 
 The launch file expands the URDF from `pt_description` with the values in `urdf_config.yaml`, then starts everything against it. The controllers are started a couple of seconds after the controller manager, and the motor diagnostics after those. The controller only forwards each commanded position to the hardware interface, which turns it into motor steps; the acceleration and speed profile is handled by the servo firmware.
 
-In `mujoco` mode the launch file starts `mujoco_ros2_control`'s own `ros2_control_node`, which runs the simulation in the same process, instead of the standard controller manager. It first builds the MuJoCo model from the URDF with `pt_mujoco`, then loads that package's camera and emergency-stop plugin configuration, and adds three helper nodes: a compressed-image republisher for `/oak/rgb/image_raw`, the static transform from `oak_link` to the camera's optical frame, and `depthimage_to_laserscan` for `/oak/scan`. See the [`pt_mujoco` README](../pt_mujoco/README.md).
+In `mujoco` mode the launch file starts `mujoco_ros2_control`'s own `ros2_control_node`, which runs the simulation in the same process, instead of the standard controller manager. It first builds the MuJoCo model from the URDF with `pt_mujoco`, then loads that package's emergency-stop plugin configuration and the selected camera's (`mujoco_camera_<camera>.yaml`), and adds helper nodes. For Gemini 2 these are a compressed-image republisher for `/gemini2/color/image_raw` and the static transform from `gemini2_link` to the camera's optical frame; for the OAK-D S2 they are the same plus `depthimage_to_laserscan` for `/oak/scan`. See the [`pt_mujoco` README](../pt_mujoco/README.md).
 
 ## Using it on another robot
 
@@ -89,8 +89,8 @@ building and must already match the selected camera geometry.
 
 Gemini 2 uses its own camera and tilt-mount meshes, aligned mounting faces, equal
 motor-side clearance, and the upright camera-body rotation. Camera/IMU frame names
-remain available for compatibility. `pt_bringup` starts the upstream Orbbec driver for real Gemini hardware; `pt_control` alone starts no real camera. The driver uses native `/gemini2/*` topics and calibrated sensor TF, with a configurable mount transform. See [Gemini 2 bringup](../README.md#gemini-2-camera). Cloudini compression is available for both real cameras when `pointcloud:=true`. Scan and octomap apply only to OAK-D S2; its VIO is disabled by default.
+remain available for compatibility. `pt_bringup` starts the upstream Orbbec driver for real Gemini hardware; `pt_control` alone starts no real camera. The driver uses native `/gemini2/*` topics and calibrated sensor TF, while the selected Xacro owns the mount pose. A camera-only driver launch requires a host robot description to provide that mount. See [Gemini 2 bringup](../README.md#gemini-2-camera). Cloudini compression is available for both real cameras when `pointcloud:=true`. Scan and octomap apply only to OAK-D S2; its VIO is disabled by default.
 
 The generated simulation uses `oakd_s2_subtree.xml` or `gemini2_subtree.xml`,
 with mounting transforms synchronized from the selected URDF. Both retain the
-existing `/oak/*` compatibility topics. The Gemini model uses a nominal 640×360, 55° vertical view; its optical and IMU extrinsics are not hardware calibration.
+`/gemini2/*` topics (OAK-D S2: `/oak/*`). The Gemini model uses a nominal 640×360, 55° vertical view; its optical and IMU extrinsics are not hardware calibration.

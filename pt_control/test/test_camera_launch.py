@@ -1,12 +1,11 @@
 """Exercise real-camera routing and Gemini arguments without starting hardware."""
 import importlib.util
-import math
 from pathlib import Path
 
 from launch import LaunchContext
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.utilities import perform_substitutions
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetParameter
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -33,11 +32,11 @@ def resolved_arguments(action, context):
             for name, value in action.launch_arguments}
 
 
-@pytest.mark.parametrize('camera,parent,filename', [
-    ('gemini2', 'oak_link', 'gemini2.launch.py'),
-    ('oakd_s2', 'tilt_link', 'oakd.launch.py'),
+@pytest.mark.parametrize('camera,filename', [
+    ('gemini2', 'gemini2.launch.py'),
+    ('oakd_s2', 'oakd.launch.py'),
 ])
-def test_real_bringup_selects_exactly_one_camera(camera, parent, filename, monkeypatch):
+def test_real_bringup_selects_exactly_one_camera(camera, filename, monkeypatch):
     module = load('pantilt.launch.py')
     monkeypatch.setattr(module, 'FindPackageShare', lambda package: str(ROOT / package))
     context = context_for(module, camera_config=camera, serial_number='test-serial')
@@ -48,8 +47,9 @@ def test_real_bringup_selects_exactly_one_camera(camera, parent, filename, monke
     source.get_launch_description(context)
     assert source.location.endswith(filename)
     arguments = resolved_arguments(actions[1], context)
-    assert arguments['tf_parent_frame'] == parent
     assert ('serial_number' in arguments) == (camera == 'gemini2')
+    assert 'publish_mount_tf' not in arguments
+    assert 'tf_parent_frame' not in arguments
     if camera == 'gemini2':
         assert arguments['serial_number'] == 'test-serial'
         assert arguments['camera_fps'] == '15'
@@ -64,12 +64,15 @@ def test_simulation_skips_all_real_drivers(camera):
     assert resolved_arguments(actions[0], context)['ros2_control_hardware_type'] == 'mujoco'
 
 
-def test_parent_and_calibration_overrides_are_forwarded():
+def test_oak_mount_is_not_overridden_by_launch_arguments():
     module = load('pantilt.launch.py')
-    context = context_for(module, tf_parent_frame='host_mount', camera_mount_xyz='0.1 0.2 0.3')
+    context = context_for(module, camera_config='oakd_s2')
     arguments = resolved_arguments(module.launch_setup(context)[1], context)
-    assert arguments['tf_parent_frame'] == 'host_mount'
-    assert arguments['camera_mount_xyz'] == '0.1 0.2 0.3'
+    assert 'tf_parent_frame' not in arguments
+    assert 'tf_parent_frame' not in context.launch_configurations
+    assert 'publish_mount_tf' not in context.launch_configurations
+    assert 'camera_mount_xyz' not in context.launch_configurations
+    assert 'camera_mount_rpy' not in context.launch_configurations
 
 
 @pytest.mark.parametrize('pointcloud', ['true', 'false'])
@@ -77,8 +80,10 @@ def test_gemini_streams_and_pointcloud_selection(pointcloud):
     module = load('gemini2.launch.py')
     context = context_for(module, pointcloud=pointcloud, serial_number='test-serial')
     actions = module.launch_setup(context)
-    assert len(actions) == (4 if pointcloud == 'true' else 3)
-    driver, depth_to_scan, mount = actions[0], actions[1], actions[-1]
+    assert len(actions) == (5 if pointcloud == 'true' else 4)
+    assert isinstance(actions[0], SetParameter)
+    assert isinstance(actions[1], SetParameter)
+    driver, depth_to_scan = actions[2], actions[3]
     assert depth_to_scan.node_package == 'depthimage_to_laserscan'
     remappings = {(perform_substitutions(context, source), perform_substitutions(context, target))
                   for source, target in depth_to_scan._Node__remappings}
@@ -86,8 +91,8 @@ def test_gemini_streams_and_pointcloud_selection(pointcloud):
     assert ('scan', '/gemini2/scan') in remappings
     if pointcloud == 'true':
         from launch_ros.actions import ComposableNodeContainer
-        assert isinstance(actions[2], ComposableNodeContainer)
-        compressor = actions[2]._ComposableNodeContainer__composable_node_descriptions[0]
+        assert isinstance(actions[4], ComposableNodeContainer)
+        compressor = actions[4]._ComposableNodeContainer__composable_node_descriptions[0]
         assert perform_substitutions(context, compressor.package) == 'pt_bringup'
         assert perform_substitutions(context, compressor.node_plugin) == 'pt_bringup::PCLCompressorNode'
     arguments = resolved_arguments(driver, context)
@@ -103,29 +108,11 @@ def test_gemini_streams_and_pointcloud_selection(pointcloud):
     assert arguments['depth_height'] == '400'
     assert arguments['color_fps'] == arguments['depth_fps'] == '15'
     assert arguments['enable_colored_point_cloud'] == pointcloud
-    assert isinstance(mount, Node)
-    command = []
-    for part in mount.cmd:
-        value = perform_substitutions(context, part)
-        if value == '--ros-args':
-            break
-        command.append(value)
-    assert command[command.index('--frame-id') + 1] == 'oak_link'
-    assert command[command.index('--child-frame-id') + 1] == 'gemini2_link'
-    assert float(command[command.index('--roll') + 1]) == pytest.approx(math.pi)
-
-
-def test_mount_transform_can_be_owned_by_another_robot():
-    module = load('gemini2.launch.py')
-    context = context_for(module, publish_mount_tf='false')
-    assert len(module.launch_setup(context)) == 2
+    assert sum(isinstance(action, Node) for action in actions) == (2 if pointcloud == 'true' else 1)
 
 
 @pytest.mark.parametrize('overrides', [
-    {'octomap': 'true'}, {'pointcloud': 'maybe'}, {'publish_mount_tf': 'maybe'},
-    {'tf_parent_frame': 'gemini2_link'}, {'tf_parent_frame': ''},
-    {'camera_mount_xyz': '0 0'}, {'camera_mount_rpy': 'nan 0 0'},
-    {'camera_mount_xyz': 'bad input here'},
+    {'octomap': 'true'}, {'pointcloud': 'maybe'}, {'camera_fps': '3'},
 ])
 def test_invalid_or_unsupported_camera_settings_fail(overrides):
     module = load('gemini2.launch.py')
@@ -180,7 +167,7 @@ def test_gemini_wrapper_resolves_only_orbbec(monkeypatch):
         return '/unused/orbbec_camera'
 
     monkeypatch.setattr(FindPackageShare, 'find', selected_only)
-    driver = module.launch_setup(context)[0]
+    driver = module.launch_setup(context)[2]
     source = driver.launch_description_source
     monkeypatch.setattr(source, '_get_launch_description', lambda path: LaunchDescription())
     source.get_launch_description(context)
@@ -203,6 +190,26 @@ def test_oak_wrapper_constructs_depthai_without_orbbec(monkeypatch):
                 for node in container['composable_node_descriptions']}
     assert 'depthai_ros_driver' in packages
     assert 'orbbec_camera' not in packages
+    driver = container['composable_node_descriptions'][0]
+    driver_parameters = driver.parameters[-1]
+    flat_parameters = {}
+    for key, value in driver_parameters.items():
+        key_name = ''.join(perform_substitutions(context, [part]) for part in key)
+        resolved_value = (''.join(perform_substitutions(context, [part]) for part in value)
+                          if isinstance(value, (tuple, list)) else value)
+        flat_parameters[key_name] = (
+            resolved_value.splitlines()[0].strip().strip("'\"")
+            if isinstance(resolved_value, str) else resolved_value
+        )
+    assert flat_parameters['driver.i_tf_parent_frame'] == 'oak_link'
+    assert flat_parameters['driver.i_tf_base_frame'] == 'oak_driver_link'
+    assert flat_parameters['driver.i_tf_cam_pos_x'] == '0.0'
+    assert flat_parameters['driver.i_tf_cam_pos_y'] == '0.0'
+    assert flat_parameters['driver.i_tf_cam_pos_z'] == '0.0'
+    assert flat_parameters['driver.i_tf_cam_roll'] == '0.0'
+    assert flat_parameters['driver.i_tf_cam_pitch'] == '0.0'
+    assert flat_parameters['driver.i_tf_cam_yaw'] == '0.0'
+    assert flat_parameters['driver.i_tf_imu_from_descr'] == 'true'
 
 
 @pytest.mark.parametrize('filename', ['gemini2.launch.py', 'oakd.launch.py'])

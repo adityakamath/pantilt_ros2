@@ -68,16 +68,13 @@ def launch_setup(context):
     if hw_type == 'real' and enable_camera:
         if camera_config == 'gemini2' and _launch_arg_as_bool(context, 'octomap'):
             raise RuntimeError('Gemini 2 octomap is not integrated; use octomap:=false.')
-        parent = LaunchConfiguration('tf_parent_frame').perform(context).strip()
         camera_args = {
             'pointcloud': LaunchConfiguration('pointcloud'),
             'camera_fps': LaunchConfiguration('camera_fps'),
             'octomap': LaunchConfiguration('octomap'),
-            'tf_parent_frame': parent or ('oak_link' if camera_config == 'gemini2' else 'tilt_link'),
         }
         if camera_config == 'gemini2':
-            for name in ('serial_number', 'usb_port', 'publish_mount_tf',
-                         'camera_mount_xyz', 'camera_mount_rpy'):
+            for name in ('serial_number', 'usb_port'):
                 camera_args[name] = LaunchConfiguration(name)
         actions.append(IncludeLaunchDescription(
             PythonLaunchDescriptionSource(PathJoinSubstitution([
@@ -105,12 +102,6 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument('serial_number', default_value='', description='Gemini 2 serial selector.'),
         DeclareLaunchArgument('usb_port', default_value='', description='Gemini 2 USB port selector.'),
-        DeclareLaunchArgument('publish_mount_tf', default_value='true',
-                              description='Gemini 2: publish the mount-to-driver transform.'),
-        DeclareLaunchArgument('camera_mount_xyz', default_value='0 0 0',
-                              description='Gemini 2 mount translation in meters; calibrate on hardware.'),
-        DeclareLaunchArgument('camera_mount_rpy', default_value='3.141592653589793 0 0',
-                              description='Gemini 2 mount rotation in radians.'),
         DeclareLaunchArgument(
             'sts_serial_port',
             default_value='',
@@ -143,11 +134,6 @@ def generate_launch_description():
             default_value='false',
             description='Run octomap_server on the OAK-D point cloud. Requires pointcloud:=true '
                         '(validated in oakd.launch.py, not here).',
-        ),
-        DeclareLaunchArgument(
-            'tf_parent_frame',
-            default_value='',
-            description='Camera parent frame; empty selects oak_link for Gemini 2 or tilt_link for OAK-D S2.',
         ),
         DeclareLaunchArgument(
             'use_sim_time',

@@ -2,6 +2,7 @@
 """Smoke tests for the URDF xacro files: runs xacro as a subprocess, no ROS graph."""
 
 import os
+import math
 import subprocess
 import xml.etree.ElementTree as ET
 
@@ -88,13 +89,13 @@ class TestUrdfXacroDefaults:
             )
 
     def test_parent_child_chain(self, pantilt_config):
-        """pantilt_base_link -> shoulder_link -> tilt_link -> oak_link."""
+        """The camera-specific frame is directly mounted to tilt_link."""
         root = _process_urdf(pantilt_config)
         parent_of = {j.find('child').get('link'): j.find('parent').get('link')
                      for j in root.findall('joint')}
         assert parent_of['shoulder_link'] == 'pantilt_base_link'
         assert parent_of['tilt_link'] == 'shoulder_link'
-        assert parent_of['oak_link'] == 'tilt_link'
+        assert parent_of['gemini2_link'] == 'tilt_link'
 
 
 @pytest.mark.parametrize('pantilt_config', _CONFIGS)
@@ -136,13 +137,29 @@ def test_velocity_limit_is_unlimited_except_where_the_simulator_enforces_it(pant
 def test_camera_mesh_selection(pantilt_config, camera_config):
     root = _process_urdf(pantilt_config, camera_config=camera_config)
     tilt = root.find("link[@name='tilt_link']")
+    camera_frame = 'gemini2_link' if camera_config == 'gemini2' else 'oak_link'
+    model_frame = f'{camera_frame}_model_origin'
     for role in ('visual', 'collision'):
         path = tilt.find(f'{role}/geometry/mesh').get('filename')
         assert path.endswith(f'/tilt_joint_{camera_config}.stl')
-    camera = root.find("link[@name='oak_link_model_origin']/visual/geometry/mesh")
+    camera = root.find(f"link[@name='{model_frame}']/visual/geometry/mesh")
     assert camera.get('filename').endswith(f'/{camera_config}.stl')
-    # Placeholder camera must preserve the existing mount and joint contracts.
-    assert root.find("joint[@name='oak_link_center_joint']/parent").get('link') == 'tilt_link'
+    assert root.find(f"link[@name='{camera_frame}']") is not None
+    mount_joint = root.find(f"joint[@name='{camera_frame}_center_joint']")
+    assert mount_joint.find('parent').get('link') == 'tilt_link'
+    origin = mount_joint.find('origin')
+    xyz = [float(value) for value in origin.get('xyz').split()]
+    rpy = [float(value) for value in origin.get('rpy').split()]
+    assert xyz == pytest.approx(
+        [-0.0306, -0.0068941 if camera_config == 'gemini2' else -0.012165,
+         -0.000225 if camera_config == 'gemini2' else 0.0]
+    )
+    assert rpy == pytest.approx([
+        math.pi / 2 if camera_config == 'gemini2' else -math.pi / 2,
+        0.0,
+        -math.pi / 2,
+    ])
+    assert (root.find("link[@name='oak_link']") is not None) == (camera_config == 'oakd_s2')
     for mesh in _mesh_paths(root):
         assert os.path.isfile(os.path.join(_SHARE, mesh))
 

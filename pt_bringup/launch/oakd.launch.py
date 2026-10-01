@@ -46,13 +46,6 @@ def generate_launch_description():
                          'octree. Only takes effect when pointcloud:=true (no point cloud to '
                          'consume otherwise).',
         ),
-        DeclareLaunchArgument(
-            'tf_parent_frame',
-            default_value='tilt_link',
-            description="TF frame the OAK-D S2 is mounted to. Default 'tilt_link' is correct "
-                         "for pantilt_ros2; override when mounting the camera elsewhere "
-                         "(e.g. directly on a host robot without the pan-tilt).",
-        ),
     ]
 
     def launch_setup(context, *_args, **_kwargs):
@@ -69,8 +62,6 @@ def generate_launch_description():
         if fps not in ('5', '10', '15', '30'):
             raise RuntimeError('camera_fps must be 5, 10, 15, or 30 for the real camera')
         octomap = _launch_arg_as_bool(context, 'octomap')
-        tf_parent_frame = LaunchConfiguration('tf_parent_frame').perform(context)
-
         config_dir = os.path.join(get_package_share_directory('pt_bringup'), 'config')
         base_params_file = ParameterFile(os.path.join(config_dir, 'oakd_vio.yaml'), allow_substs=True)
         oak_parameters = [base_params_file]
@@ -79,9 +70,16 @@ def generate_launch_description():
             oak_parameters.append(pcl_overlay_file)
         oak_parameters.append({
             'driver': {
-                'i_tf_parent_frame': tf_parent_frame,
+                'i_tf_parent_frame': 'oak_link',
                 'i_tf_camera_model': 'OAK-D-S2',
-                'i_tf_base_frame': 'oak_link',
+                'i_tf_base_frame': 'oak_driver_link',
+                'i_tf_cam_pos_x': '0.0',
+                'i_tf_cam_pos_y': '0.0',
+                'i_tf_cam_pos_z': '0.0',
+                'i_tf_cam_roll': '0.0',
+                'i_tf_cam_pitch': '0.0',
+                'i_tf_cam_yaw': '0.0',
+                'i_tf_imu_from_descr': 'true',
             },
             'rgb': {'i_fps': float(fps)},
             'stereo': {'i_fps': float(fps)}

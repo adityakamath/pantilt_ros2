@@ -129,6 +129,7 @@ def launch_setup(context):
             robot_description,
             f'{pkg_ctrl}/config/pantilt_config.yaml',
             f'{pkg_mujoco}/config/mujoco_ros2_control_plugins.yaml',
+            f'{pkg_mujoco}/config/mujoco_camera_{camera_config}.yaml',
             {'use_sim_time': True},
         ],
         remappings=[('/diagnostics', '/controller_manager/diagnostics')],
@@ -154,10 +155,31 @@ def launch_setup(context):
 
     control_node_actions = [mujoco_control_node] if hw_type == 'mujoco' else [controller_manager]
 
-    # Sim-only extras: the camera plugin publishes raw only, so add /oak/rgb/image_raw/compressed
-    # for viewers, and the optical frame its images are stamped in needs a TF from oak_link.
+    # Sim-only extras: the camera plugin publishes raw only, so add the compressed RGB for viewers,
+    # and the optical frame its images are stamped in needs a TF from the camera base frame.
     sim_nodes = []
-    if hw_type == 'mujoco':
+    if hw_type == 'mujoco' and camera_config == 'gemini2':
+        sim_nodes = [
+            Node(
+                package='image_transport',
+                executable='republish',
+                name='gemini2_rgb_compressor',
+                output='log',
+                parameters=[{'in_transport': 'raw', 'out_transport': 'compressed', 'use_sim_time': True}],
+                remappings=[('in', '/gemini2/color/image_raw'),
+                            ('out/compressed', '/gemini2/color/image_raw/compressed')],
+            ),
+            Node(
+                package='tf2_ros',
+                executable='static_transform_publisher',
+                name='gemini2_optical_frame_publisher',
+                output='log',
+                arguments=['--frame-id', 'gemini2_link', '--child-frame-id', 'gemini2_color_optical_frame',
+                           '--roll', '-1.5707963', '--pitch', '0', '--yaw', '-1.5707963'],
+                parameters=[{'use_sim_time': True}],
+            ),
+        ]
+    elif hw_type == 'mujoco':
         sim_nodes = [
             Node(
                 package='image_transport',

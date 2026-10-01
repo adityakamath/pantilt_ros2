@@ -16,6 +16,9 @@ import xacro.substitution_args
 from pt_mujoco.paths import package_share
 
 VARIANTS = ('pt100', 'pt101')
+# Each camera's MJCF names follow its URDF base frame: <frame>, <frame>_model_origin and a render camera.
+CAMERA_FRAMES = {'gemini2': 'gemini2_link', 'oakd_s2': 'oak_link'}
+CAMERA_RENDERERS = {'gemini2': 'gemini2_rgb', 'oakd_s2': 'oak_rgb'}
 SIM_PACKAGE = package_share('pt_mujoco')
 
 
@@ -60,11 +63,12 @@ def payload_urdf(variant, packages, control, camera_config='gemini2'):
     return ET.fromstring(doc.toxml())
 
 
-def sync_payload_geometry(spec, urdf):
+def sync_payload_geometry(spec, urdf, camera_config='gemini2'):
     """Use the URDF as the single source for payload frames, joint axes and mesh origins."""
+    frame = CAMERA_FRAMES[camera_config]
     joints = [('shoulder_pan_joint', 'shoulder_link'), ('tilt_joint', 'tilt_link'),
-              ('oak_link_center_joint', 'oak_link'),
-              ('oak_link_model_origin_joint', 'oak_link_model_origin')]
+              (f'{frame}_center_joint', frame),
+              (f'{frame}_model_origin_joint', f'{frame}_model_origin')]
     for joint_name, body_name in joints:
         joint = urdf.find(f"joint[@name='{joint_name}']")
         body = spec.body(body_name)
@@ -77,7 +81,7 @@ def sync_payload_geometry(spec, urdf):
             limit = joint.find('limit')
             mj_joint.range = [float(limit.get('lower')), float(limit.get('upper'))]
     meshes = {mesh.name: Path(mesh.file).name for mesh in spec.meshes if mesh.file}
-    for name in ('pantilt_base_link', 'shoulder_link', 'tilt_link', 'oak_link_model_origin'):
+    for name in ('pantilt_base_link', 'shoulder_link', 'tilt_link', f'{frame}_model_origin'):
         body = spec.body(name)
         link = urdf.find(f"link[@name='{name}']")
         for geom in body.geoms:
@@ -136,25 +140,24 @@ def build_payload_spec(variant, urdf, payload_limits, description_dir=None):
     if variant not in VARIANTS:
         raise ValueError(f'Unknown variant: {variant}')
     packages = {'pt_description': Path(description_dir).resolve() if description_dir else package_share('pt_description')}
-    camera_mesh = urdf.find("link[@name='oak_link_model_origin']/visual/geometry/mesh")
-    camera_config = Path(camera_mesh.get('filename')).stem
-    if camera_config not in ('oakd_s2', 'gemini2'):
-        raise ValueError(f'Unknown camera mesh: {camera_config}')
+    camera_config = next((name for name, frame in CAMERA_FRAMES.items()
+                          if urdf.find(f"link[@name='{frame}_model_origin']") is not None), None)
+    if camera_config is None:
+        raise ValueError(f'Missing camera model origin: expected one of {sorted(CAMERA_FRAMES.values())}')
     with package_paths(packages):
         doc = xacro.process_file(str(SIM_PACKAGE / 'mjcf/pt.mjcf.xacro'),
                                  mappings={'pantilt_config': variant, 'camera_config': camera_config})
     # MuJoCo parses includes and maintains model references; no custom XML assembly.
     spec = mujoco.MjSpec.from_string(doc.toxml())
-    sync_payload_geometry(spec, urdf)
+    sync_payload_geometry(spec, urdf, camera_config)
     sync_velocity_limits(spec, urdf, payload_limits)
     sync_payload_parameters(spec, urdf, yaml.safe_load((SIM_PACKAGE / 'config/mujoco.yaml').read_text()), set_origin)
-    camera = spec.camera('oak_rgb')
+    camera = spec.camera(CAMERA_RENDERERS[camera_config])
     if camera is not None:
-        # The OAK-D is mounted upside down: the camera axes follow the oak_link frame (right = its
-        # -Y, up = its +Z), which is rolled 180 degrees, so the image is upside down like the real one.
+        # Right is the camera frame's -Y and up its +Z; the OAK-D frame is rolled 180 degrees, so its image is
+        # upside down like the real one, while gemini2_link is upright.
         camera.alt.type = mujoco.mjtOrientation.mjORIENTATION_XYAXES
-        camera.alt.xyaxes = ([0, 1, 0, 0, 0, -1] if camera_config == 'gemini2'
-                              else [0, -1, 0, 0, 0, 1])
+        camera.alt.xyaxes = [0, -1, 0, 0, 0, 1]
     if camera_config == 'gemini2':
         spec.add_sensor(name='gemini2_accelerometer', type=mujoco.mjtSensor.mjSENS_ACCELEROMETER,
                         objtype=mujoco.mjtObj.mjOBJ_SITE, objname='gemini2_imu')

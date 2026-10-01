@@ -48,6 +48,9 @@ def test_simulation_config_lives_in_pt_mujoco(name):
 def test_control_launch_loads_the_plugin_config_from_pt_mujoco():
     source = (REPOSITORY / 'pt_control/launch/pantilt.launch.py').read_text()
     assert '{pkg_mujoco}/config/mujoco_ros2_control_plugins.yaml' in source
+    assert '{pkg_mujoco}/config/mujoco_camera_{camera_config}.yaml' in source
+    for camera in ('gemini2', 'oakd_s2'):
+        assert (REPOSITORY / f'pt_mujoco/config/mujoco_camera_{camera}.yaml').is_file()
     assert 'pt_mujoco.build_mujoco_models' in source
 
 
@@ -66,7 +69,7 @@ def test_control_launch_passes_the_servo_profile_to_the_urdf():
         assert f'{key}:={{_cfg["{key}"]}}' in source, key
 
 
-def test_sim_launch_slices_the_simulated_depth_into_oak_scan_like_the_real_bringup():
+def test_oak_sim_launch_slices_the_simulated_depth_into_oak_scan_like_the_real_bringup():
     source = (REPOSITORY / 'pt_control/launch/pantilt.launch.py').read_text()
     assert "executable='depthimage_to_laserscan_node'" in source
     assert "('depth', '/oak/stereo/image_raw')" in source and "('scan', '/oak/scan')" in source

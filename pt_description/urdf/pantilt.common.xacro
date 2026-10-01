@@ -15,6 +15,8 @@
   <xacro:property name="camera_config" value="$(arg camera_config)"/>
   <xacro:property name="camera_mesh" value="${dict(oakd_s2='oakd_s2.stl', gemini2='gemini2.stl')[camera_config]}"/>
   <xacro:property name="tilt_camera_mesh" value="${dict(oakd_s2='tilt_joint_oakd_s2.stl', gemini2='tilt_joint_gemini2.stl')[camera_config]}"/>
+  <xacro:property name="camera_base_frame" value="${'gemini2_link' if camera_config == 'gemini2' else 'oak_link'}"/>
+  <xacro:property name="camera_imu_frame" value="${'gemini2_imu_frame' if camera_config == 'gemini2' else 'oak_imu_frame'}"/>
 
   <!-- Pantilt base visual compensation / mount rotation (rad) -->
   <xacro:property name="pantilt_offset_rz" value="${pi/2}"/>
@@ -82,6 +84,10 @@
   <!-- Camera mount orientation (in tilt_link frame) -->
   <xacro:property name="camera_roll" value="${-pi/2}"/>
   <xacro:property name="camera_yaw"  value="${-pi/2}"/>
+  <!-- Gemini 2 is mounted upright (the OAK-D frame already absorbs its upside-down mount): +pi about its forward axis -->
+  <xacro:if value="${camera_config == 'gemini2'}">
+    <xacro:property name="camera_roll" value="${pi/2}"/>
+  </xacro:if>
 
   <!-- Compatibility IMU offset (OAK calibration) (relative to oak frame) -->
   <xacro:property name="camera_imu_x" value="-0.008"/>

@@ -3,7 +3,7 @@
 <package format="3">
   <name>pt_control</name>
   <version>0.1.0</version>
-  <description>Controllers, configuration and launch files for the Pan Tilt 100 on hardware, mock or MuJoCo</description>
+  <description>Controllers, configuration and launch files for the pan-tilt (PT100 and PT101) on hardware, mock or MuJoCo</description>
   <author email="adityakamath@live.com">Aditya Kamath</author>
   <maintainer email="adityakamath@live.com">Aditya Kamath (Kamath Robotics)</maintainer>
   <license>Apache-2.0</license>

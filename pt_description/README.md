@@ -73,10 +73,12 @@ base_footprint                  ← standalone root only
 └── pantilt_base_link           ← mount to the host when embedded
     └── shoulder_link           ← shoulder_pan_joint
         └── tilt_link           ← tilt_joint
-            └── oak_link        ← compatibility mount frame; real Gemini sensor tree attaches here
-                ├── oak_link_model_origin   ← mesh visual origin
-                └── oak_imu_frame
+            └── selected camera root (camera_config)
+                ├── camera model origin
+                └── camera-specific IMU frame
 ```
+
+The selected root is `gemini2_link` with `gemini2_imu_frame`, or `oak_link` with `oak_imu_frame`; only one camera branch is present in a generated URDF.
 
 ## Regenerating the pre-built URDFs
 
@@ -106,8 +108,7 @@ pytest test -q
 The tests run `xacro` as a subprocess and check the output for both variants and hardware types: that the correct hardware plugin is selected, the servo profile defaults are 65 / 50 / 0, and the velocity limits are unlimited except where a simulator enforces them.
 
 Camera geometry is selected independently with `camera_config:=gemini2|oakd_s2`
-(default `gemini2`), for either PT100 or PT101. Gemini 2 uses dedicated meshes and a camera-specific mesh mounting offset, while
-retaining the existing camera frame names; see the [camera variant notes](../README.md#camera-mesh-variants).
+(default `gemini2`), for either PT100 or PT101. Gemini 2 uses dedicated meshes, a camera-specific mesh mounting offset, and `gemini2_link`; OAK-D S2 uses `oak_link`. See the [camera variant notes](../README.md#camera-mesh-variants).
 
 Camera STL assets must omit embedded binary-STL color headers and per-face colors,
 so viewers use the URDF materials: charcoal for the camera and light grey for
@@ -123,4 +124,4 @@ physical parameters from the URDF. Regenerate both camera sets after changing
 this description; see [the builder instructions](../pt_mujoco/README.md#gemini-2-models).
 Plain `.urdf` snapshots use `../meshes/` paths; Xacro retains ROS package paths.
 
-The real Gemini 2 driver owns calibrated sensor frames below `gemini2_link`. `pt_bringup` attaches that frame to `oak_link` with a configurable mount transform; its translation must be measured on hardware. The legacy `oak_imu_frame` is not a Gemini IMU calibration. See [Gemini 2 driver and TF](../pt_bringup/README.md#gemini-2-driver-and-tf).
+The real Gemini 2 driver owns calibrated sensor frames below `gemini2_link`; the selected Xacro owns the physical mount from `tilt_link` to that root. A camera-only launch requires a host Xacro to provide the root mount; the driver does not publish a static mount transform. See [Gemini 2 driver and TF](../pt_bringup/README.md#gemini-2-driver-and-tf).

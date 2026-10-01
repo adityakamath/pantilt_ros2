@@ -1,0 +1,10 @@
+# OAK-D S2 render camera; topics match the real depthai driver.
+/**:
+  ros__parameters:
+    mujoco_plugins:
+      mujoco_camera_plugin:
+        oak_rgb:
+          frame_name: oak_rgb_camera_optical_frame
+          info_topic: /oak/rgb/camera_info
+          image_topic: /oak/rgb/image_raw
+          depth_topic: /oak/stereo/image_raw

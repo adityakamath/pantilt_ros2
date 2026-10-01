@@ -124,14 +124,14 @@
     <!-- Selected camera mesh + compatibility camera/IMU frames -->
     <xacro:camera
       mesh_file="${camera_mesh}"
-      mesh_yaw="${pi if camera_config == 'gemini2' else 0}"
-      camera_name="oak_link"
-      base_frame="oak_link"
+      mesh_yaw="0"
+      camera_name="${camera_base_frame}"
+      base_frame="${camera_base_frame}"
       parent="tilt_link"
       cam_pos_x="${camera_pos_x}" cam_pos_y="${camera_pos_y}" cam_pos_z="${camera_pos_z}"
       cam_roll="${camera_roll}" cam_pitch="0" cam_yaw="${camera_yaw}"
       r="${charcoal_rgb}" g="${charcoal_rgb}" b="${charcoal_rgb}" a="1.0"
-      imu_frame="oak_imu_frame"/>
+      imu_frame="${camera_imu_frame}"/>
 
   </xacro:macro>
 

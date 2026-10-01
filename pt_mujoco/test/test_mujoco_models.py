@@ -67,7 +67,7 @@ def test_models_settle_and_preserve_interfaces_and_mass(variant):
     assert np.isfinite(data.qpos).all()
     assert model.nu == 2 and model.njnt == 2
     assert np.abs(data.qpos).max() < 1e-3
-    assert model.camera('oak_rgb').id >= 0
+    assert model.camera('gemini2_rgb').id >= 0
     masses = {link.get('name'): float(link.find('inertial/mass').get('value'))
               for link in payload_urdf(variant).findall('link') if link.find('inertial/mass') is not None}
     assert model.body_mass.sum() == pytest.approx(sum(masses.values()))
@@ -77,7 +77,7 @@ def test_models_settle_and_preserve_interfaces_and_mass(variant):
 def test_pan_tilt_and_optical_axes(variant):
     runtime = runtime_from_file(snapshot(variant))
     model, data = runtime.model, runtime.data
-    camera = model.camera('oak_rgb').id
+    camera = model.camera('gemini2_rgb').id
     assert np.dot(-data.cam_xmat[camera].reshape(3, 3)[:, 2], [1, 0, 0]) > .999
     # The default Gemini camera is upright: image up is +Z, right is -Y.
     assert np.dot(data.cam_xmat[camera].reshape(3, 3)[:, 1], [0, 0, 1]) > .999
@@ -177,7 +177,7 @@ def test_payload_frames_and_visual_meshes_match_urdf(variant, pan, tilt):
         data.qpos[model.joint(name).qposadr[0]] = value
     mujoco.mj_forward(model, data)
     base_inverse = np.linalg.inv(transforms['pantilt_base_link'])
-    for name in ['pantilt_base_link', 'shoulder_link', 'tilt_link', 'oak_link', 'oak_link_model_origin']:
+    for name in ['pantilt_base_link', 'shoulder_link', 'tilt_link', 'gemini2_link', 'gemini2_link_model_origin']:
         expected = base_inverse @ transforms[name]
         body = model.body(name).id
         actual = np.eye(4)
@@ -186,7 +186,7 @@ def test_payload_frames_and_visual_meshes_match_urdf(variant, pan, tilt):
         assert np.allclose(actual, expected, atol=1e-8), name
     # Compare compiled mesh bounds with the original STL vertices transformed through the
     # URDF. This catches wrong visual offsets as well as frame-only errors.
-    for link_name, mesh_name in [('tilt_link', 'tilt_joint_gemini2'), ('oak_link_model_origin', 'gemini2')]:
+    for link_name, mesh_name in [('tilt_link', 'tilt_joint_gemini2'), ('gemini2_link_model_origin', 'gemini2')]:
         visual = urdf.find(f"link[@name='{link_name}']/visual")
         transform = transforms[link_name] @ _urdf_transform(visual.find('origin'))
         dtype = np.dtype([('normal', '<f4', (3,)), ('vertices', '<f4', (3, 3)), ('attribute', '<u2')])
@@ -290,7 +290,7 @@ def test_payload_mass_changes_and_new_camera_inertia(workspace):
         '<inertia ixx="0.001" ixy="0" ixz="0" iyy="0.001" iyz="0" izz="0.001"/></inertial>'))
     model = workspace.build_spec().compile()
     assert model.body('pantilt_base_link').mass[0] == pytest.approx(1.3)
-    assert model.body('oak_link_model_origin').mass[0] == pytest.approx(.2)
+    assert model.body('gemini2_link_model_origin').mass[0] == pytest.approx(.2)
 
 
 def test_urdf_inertial_origin_and_tensor_are_preserved(workspace):
@@ -379,5 +379,7 @@ def test_camera_variant_assets_compile(variant, camera):
     assert f'{camera}.stl' in filenames
     assert f'tilt_joint_{camera}.stl' in filenames
     model = spec.compile()
-    assert model.body('oak_link').id > 0
+    frame, renderer = {'gemini2': ('gemini2_link', 'gemini2_rgb'), 'oakd_s2': ('oak_link', 'oak_rgb')}[camera]
+    assert model.body(frame).id > 0
+    assert model.camera(renderer).id >= 0
     assert model.joint('tilt_joint').id > 0

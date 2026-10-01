@@ -142,7 +142,7 @@ pantilt_ros2 is a git submodule under `payloads/pantilt_ros2/` in [lekiwi_ros2](
 ros2 launch pt_bringup pantilt.launch.py                       # control + Gemini 2 driver
 ros2 launch pt_bringup pantilt.launch.py camera_config:=oakd_s2 # control + alternative OAK-D S2 driver
 ros2 launch pt_control pantilt.launch.py                       # control only
-ros2 launch pt_bringup gemini2.launch.py                       # Gemini 2 camera only (expects the mount TF)
+ros2 launch pt_bringup gemini2.launch.py                       # Gemini 2 driver only; host Xacro must provide its mount
 ros2 launch pt_bringup oakd.launch.py                          # alternative OAK-D S2 camera only
 ros2 launch pt_control pantilt.launch.py use_mock:=true        # control without hardware
 ros2 launch pt_description urdf.launch.py                      # only the model and TF, for RViz
@@ -183,10 +183,7 @@ ros2 launch pt_bringup pantilt.launch.py camera_config:=oakd_s2 enable_camera:=f
 | `diagnostics`      | `pt_control`, `pt_bringup` | `false`         | Publish motor temperature, voltage and current |
 | `pointcloud`       | `pt_bringup`               | `false`         | One colored cloud and Cloudini compression for either real camera; OAK-D S2 also aligns depth to RGB |
 | `octomap`          | `pt_bringup`               | `false`         | OAK-D S2 only: build a persistent 3D octree (needs `pointcloud:=true`); rejected for Gemini 2 |
-| `tf_parent_frame` | `pt_bringup` | empty | Full bringup selects `oak_link` for Gemini 2 or `tilt_link` for OAK-D S2 |
 | `serial_number`, `usb_port` | `pt_bringup`, `gemini2.launch.py` | empty | Optional Orbbec device selectors |
-| `camera_mount_xyz`, `camera_mount_rpy` | `pt_bringup`, `gemini2.launch.py` | `0 0 0`, `π 0 0` | Gemini mount-to-driver translation (meters) and rotation (radians); calibrate translation on hardware |
-| `publish_mount_tf` | `pt_bringup`, `gemini2.launch.py` | `true` | Disable if another component supplies the Gemini mount transform |
 | `sim`              | `pt_bringup`               | `false`         | Run in MuJoCo instead of on hardware (see [Simulation](#simulation)) |
 | `mujoco_gui`       | `pt_bringup`               | `false`         | `sim` only: open the MuJoCo viewer (needs a display) |
 | `mujoco_scene`     | `pt_control`, `pt_bringup` | `flat`          | `sim` only: `flat`, `none` or the path to a scene file |
@@ -240,15 +237,15 @@ The default real bringup includes the upstream `orbbec_camera/gemini2.launch.py`
 | `/gemini2/depth_registered/points` | One colored cloud with `pointcloud:=true` |
 | `/gemini2/depth_registered/points/compressed` | Cloudini-compressed colored cloud with `pointcloud:=true` |
 
-The driver publishes its sensor TF tree below `gemini2_link`. A separate static transform attaches that root to the existing `oak_link` mount frame. Its default roll of π compensates for the inverted legacy frame; its zero translation is provisional, not a measured sensor origin. Set `camera_mount_xyz` and `camera_mount_rpy` after measuring the mount-to-sensor transform. The old `oak_imu_frame` is retained for compatibility and is not used for Gemini IMU data.
+The driver publishes its sensor TF tree below `gemini2_link`. The selected pan-tilt Xacro mounts Gemini 2 or OAK-D S2 to `tilt_link` using the corresponding camera geometry and orientation. The driver launch does not publish a competing mount transform; a standalone camera launch therefore needs a host Xacro to provide its camera root frame.
 
 ```bash
 ros2 launch pt_bringup pantilt.launch.py pointcloud:=true
-# Camera alone, with no pan-tilt TF provider:
-ros2 launch pt_bringup gemini2.launch.py publish_mount_tf:=false
+# Camera driver alone; a host robot description must supply gemini2_link's mount:
+ros2 launch pt_bringup gemini2.launch.py
 ```
 
-Gemini bringup does not supply VIO or octomap. `octomap:=true` is rejected for Gemini rather than silently ignored. Standalone pantilt MuJoCo still uses `/oak/*` compatibility topics and nominal Gemini optics; it does not model the device's measured calibration.
+Gemini bringup does not supply VIO or octomap. `octomap:=true` is rejected for Gemini rather than silently ignored. Standalone pantilt MuJoCo publishes the Gemini color image on `/gemini2/color/*` with nominal optics; it does not model the device's measured calibration.
 
 ## OAK-D S2 camera modes
 
@@ -268,7 +265,7 @@ ros2 launch pt_bringup pantilt.launch.py sim:=true                    # headless
 ros2 launch pt_bringup pantilt.launch.py sim:=true mujoco_gui:=true   # with the MuJoCo viewer
 ```
 
-The same controllers and teleop run against a MuJoCo model instead of the hardware, so the commands above work unchanged. It needs no display; to watch it from another machine, run `foxglove_bridge` and connect [Foxglove](https://foxglove.dev/) to `ws://<host>:8765`. The standalone simulated camera publishes `/oak/rgb/image_raw`, `/oak/rgb/image_raw/compressed`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` and `/oak/scan` regardless of the selected camera geometry, and `/emergency_stop` works as on the robot. The model is generated from the URDF by [`pt_mujoco`](pt_mujoco/README.md), which also has a standalone (no ROS) viewer and the details of the simulated servo. The servo profile is identified from a real STS3215, but the simulation as a whole has not been compared against the hardware.
+The same controllers and teleop run against a MuJoCo model instead of the hardware, so the commands above work unchanged. It needs no display; to watch it from another machine, run `foxglove_bridge` and connect [Foxglove](https://foxglove.dev/) to `ws://<host>:8765`. The standalone simulated Gemini 2 publishes `/gemini2/color/image_raw`, `/gemini2/color/image_raw/compressed` and `/gemini2/color/camera_info`; the OAK-D S2 publishes `/oak/rgb/image_raw`, `/oak/rgb/image_raw/compressed`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` and `/oak/scan`. `/emergency_stop` works as on the robot. The model is generated from the URDF by [`pt_mujoco`](pt_mujoco/README.md), which also has a standalone (no ROS) viewer and the details of the simulated servo. The servo profile is identified from a real STS3215, but the simulation as a whole has not been compared against the hardware.
 
 ## Using it on another robot
 
@@ -306,7 +303,7 @@ Motor IDs, centres and limits come from the macro defaults, so you only pass the
 
 ## ROS interfaces
 
-Real Gemini 2 topics use `/gemini2/*` (see [Gemini 2 camera](#gemini-2-camera)). The `/oak/*` topics below belong to the alternative OAK-D S2 driver; simulation retains its compatible image and scan topics.
+Real Gemini 2 topics use `/gemini2/*` (see [Gemini 2 camera](#gemini-2-camera)). The `/oak/*` topics below belong to the alternative OAK-D S2 driver and its simulation.
 
 | Topic                          | Type                                   | Description |
 |--------------------------------|----------------------------------------|-------------|
@@ -333,7 +330,7 @@ base_footprint                  ← standalone root only
 └── pantilt_base_link           ← mount to the host robot when embedded
     └── shoulder_link           ← shoulder_pan_joint (±90°)
         └── tilt_link           ← tilt_joint (±90°)
-            └── oak_link        ← compatibility mount frame; real Gemini sensor tree attaches here
+            └── gemini2_link    ← Gemini 2 mount frame; real Gemini sensor tree attaches here
                 └── oak_imu_frame
 ```
 
@@ -367,10 +364,13 @@ The Gemini tilt mount is centered along the motor shaft, leaving approximately
 0.225 mm clearance at each mounting face. The camera follows the same lateral
 shift so its mounting holes remain aligned with the bracket. The camera has a Gemini-specific mount offset, seating its rear face on
 the bracket. The two camera mounting holes have 45 mm spacing. The Gemini body is rotated
-180 degrees about its front-to-back mesh axis to mount upright.
-Existing `oak_link`/IMU frame names and simulated camera settings remain for
-compatibility; they are not calibrated Gemini optical/IMU properties. Real Gemini
-bringup launches OrbbecSDK_ROS2 with native `/gemini2/*` topics and calibrated sensor TF. The mount-to-sensor translation remains provisional and must be measured for accurate registration. The parent LeKiwi bringup forwards `camera_config` to its URDF, simulation builder and selected real driver.
+180 degrees about its front-to-back mesh axis to mount upright. Xacro carries this
+pose; the real camera launch does not publish a mount transform. The Gemini frames,
+IMU and simulated camera settings are nominal, not calibrated Gemini optical/IMU
+properties. Real Gemini bringup launches OrbbecSDK_ROS2 with native `/gemini2/*`
+topics and calibrated sensor TF. LeKiwi integrates the Gemini 2 configuration; the
+independent `camera_config` selector in this repository retains both supported
+camera variants.
 
 The MuJoCo source selects `pt_mujoco/mjcf/oakd_s2_subtree.xml` or
 `pt_mujoco/mjcf/gemini2_subtree.xml` for the camera-specific tilt assembly. The

@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
 """Launch Orbbec's Gemini 2 driver and attach its sensor tree to the pan-tilt."""
 
-import math
-
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch_ros.actions import ComposableNodeContainer, Node
+from launch_ros.actions import ComposableNodeContainer, Node, SetParameter
 from launch_ros.descriptions import ComposableNode
 from launch_ros.substitutions import FindPackageShare
 
@@ -17,17 +15,6 @@ def _boolean(context, name):
     if value not in ('true', 'false', '1', '0'):
         raise RuntimeError(f'{name} must be true/false or 1/0, got {value!r}')
     return value in ('true', '1')
-
-
-def _vector(context, name):
-    raw = LaunchConfiguration(name).perform(context)
-    try:
-        values = [float(value) for value in raw.split()]
-    except ValueError as exc:
-        raise RuntimeError(f'{name} must contain three finite numbers') from exc
-    if len(values) != 3 or not all(math.isfinite(value) for value in values):
-        raise RuntimeError(f'{name} must contain three finite numbers')
-    return [str(value) for value in values]
 
 
 def launch_setup(context):
@@ -67,7 +54,13 @@ def launch_setup(context):
         }.items(),
     )
     # Convert depth directly in both point-cloud modes; a cloud is not needed for a 2D scan.
-    actions = [driver, Node(
+    # image_transport loads every installed plugin per topic; keep only the useful ones
+    actions = [
+        SetParameter('color.image_raw.enable_pub_plugins',
+                     ['image_transport/raw', 'image_transport/compressed']),
+        SetParameter('depth.image_raw.enable_pub_plugins',
+                     ['image_transport/raw', 'image_transport/compressedDepth']),
+        driver, Node(
         package='depthimage_to_laserscan',
         executable='depthimage_to_laserscan_node',
         name='gemini2_depth_to_scan',
@@ -97,19 +90,6 @@ def launch_setup(context):
             )],
             output='both',
         ))
-    if _boolean(context, 'publish_mount_tf'):
-        parent = LaunchConfiguration('tf_parent_frame').perform(context).strip()
-        if not parent or parent == 'gemini2_link':
-            raise RuntimeError('tf_parent_frame must be a nonempty frame other than gemini2_link')
-        x, y, z = _vector(context, 'camera_mount_xyz')
-        roll, pitch, yaw = _vector(context, 'camera_mount_rpy')
-        actions.append(Node(
-            package='tf2_ros', executable='static_transform_publisher',
-            name='gemini2_mount_tf', output='screen',
-            arguments=['--x', x, '--y', y, '--z', z,
-                       '--roll', roll, '--pitch', pitch, '--yaw', yaw,
-                       '--frame-id', parent, '--child-frame-id', 'gemini2_link'],
-        ))
     return actions
 
 
@@ -127,13 +107,5 @@ def generate_launch_description():
                               description='Orbbec device serial; empty selects the first device.'),
         DeclareLaunchArgument('usb_port', default_value='',
                               description='Optional Orbbec USB port selector.'),
-        DeclareLaunchArgument('publish_mount_tf', default_value='true',
-                              description='Attach gemini2_link to the model; disable if provided elsewhere.'),
-        DeclareLaunchArgument('tf_parent_frame', default_value='oak_link',
-                              description='Existing pan-tilt camera mount frame, or another host frame.'),
-        DeclareLaunchArgument('camera_mount_xyz', default_value='0 0 0',
-                              description='Parent-to-driver translation in meters; provisional until measured.'),
-        DeclareLaunchArgument('camera_mount_rpy', default_value=f'{math.pi} 0 0',
-                              description='Parent-to-driver rotation in radians; corrects the inverted legacy mount frame.'),
         OpaqueFunction(function=launch_setup),
     ])

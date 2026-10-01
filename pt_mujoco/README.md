@@ -74,9 +74,10 @@ ros2 topic pub /pantilt_controller/commands std_msgs/msg/Float64MultiArray "{dat
 | Topic or service | What it is |
 |---|---|
 | `/joint_states`, `/pantilt_controller/commands` | Same as the real robot, from ros2_control on the simulated motors |
-| `/oak/rgb/image_raw`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info` | Compatibility camera in frame `oak_rgb_camera_optical_frame`; Gemini geometry uses a nominal 640×360 RGB view, without measured Gemini intrinsics |
-| `/oak/rgb/image_raw/compressed` | Compressed version of the RGB image |
-| `/oak/scan` | Laser scan sliced from the depth image, as on the real bringup |
+| `/gemini2/color/image_raw`, `/gemini2/color/camera_info` | Gemini 2 camera in frame `gemini2_color_optical_frame`, a nominal 640×360 RGB view without measured Gemini intrinsics |
+| `/gemini2/color/image_raw/compressed` | Compressed version of the RGB image |
+| `/oak/rgb/image_raw`, `/oak/stereo/image_raw`, `/oak/rgb/camera_info`, `/oak/rgb/image_raw/compressed` | OAK-D S2 camera in frame `oak_rgb_camera_optical_frame` (`--camera oakd_s2`) |
+| `/oak/scan` | OAK-D S2 only: laser scan sliced from the depth image, as on the real bringup |
 | `/emergency_stop` (`std_srvs/SetBool`) | While enabled, torque is disabled on both motors and commands are ignored, matching the real robot's `sts_hardware_interface`; the pan-tilt drifts freely rather than holding position; releasing it hands control back |
 
 The standalone MuJoCo camera plugin requests 30 Hz for both camera geometries; real camera bringup defaults to 15 Hz. A previous headless Raspberry Pi 5 run delivered about 19 Hz while the simulation stayed in real time; actual throughput depends on the scene and host.
@@ -86,7 +87,8 @@ The standalone MuJoCo camera plugin requests 30 Hz for both camera geometries; r
 | File | What it sets |
 |---|---|
 | `config/mujoco.yaml` | Timestep, integrator and solver settings, and the pan and tilt servo profile (gain, damping, armature, friction) |
-| `config/mujoco_ros2_control_plugins.yaml` | The ROS plugins: camera (topics, frame, rate) and the emergency stop |
+| `config/mujoco_ros2_control_plugins.yaml` | The ROS plugins shared by both cameras: the camera plugin's rate and the emergency stop |
+| `config/mujoco_camera_gemini2.yaml`, `config/mujoco_camera_oakd_s2.yaml` | The selected camera's render camera (`gemini2_rgb` / `oak_rgb`), topics and frame |
 | `config/mujoco_depth_to_scan.yaml` | Range and height of the `/oak/scan` slice |
 | `mjcf/` | The MJCF model sources (entry file, pan-tilt body, servo defaults, camera) and the `scenes/` floor. Frames, inertias and limits in them are overwritten from the URDF at build time |
 
@@ -143,14 +145,14 @@ Python callers default to `camera_config="gemini2"` and can pass `camera_config=
 The Gemini camera flip, seating offset and centered tilt mount come from Xacro;
 the camera is charcoal and the bracket uses the shared light-grey material.
 
-The simulated sensor still uses OAK frame/topic names for compatibility. The Gemini model has a nominal 640×360 RGB view and ideal co-located IMU sensors, not measured Gemini intrinsics or extrinsics. Camera inertia and hardware calibration remain future work.
+The Gemini model uses Gemini-specific names throughout (`gemini2_link`, `gemini2_link_model_origin`, the `gemini2_rgb` camera and `/gemini2/*` topics); the OAK-D S2 model keeps `oak_*`. The Gemini model has a nominal 640×360 RGB view and ideal co-located IMU sensors, not measured Gemini intrinsics or extrinsics. Camera inertia and hardware calibration remain future work.
 `--model` in the viewer uses the supplied model as-is rather than applying `--camera`.
 
 `mjcf/oakd_s2_subtree.xml` and `mjcf/gemini2_subtree.xml` define the camera-specific
 tilt assemblies. The builder selects the subtree from the URDF camera mesh, then
 synchronizes transforms and geometry from the URDF as before.
 
-Real Gemini 2 bringup uses OrbbecSDK_ROS2 with native `/gemini2/*` topics and device calibration. These differ from the simulated `/oak/*` compatibility camera; the real driver is never launched in simulation. See [real camera bringup](../README.md#gemini-2-camera).
+Real Gemini 2 bringup uses OrbbecSDK_ROS2 with native `/gemini2/*` topics and device calibration. The simulated Gemini camera uses the same `/gemini2/color/*` names; the real driver is never launched in simulation. See [real camera bringup](../README.md#gemini-2-camera).
 
 
 The Gemini 2 generated model uses a nominal 640×360, 55° vertical RGB view
@@ -158,4 +160,4 @@ The Gemini 2 generated model uses a nominal 640×360, 55° vertical RGB view
 `gemini2_accelerometer` and `gemini2_gyroscope` sensors. These ideal sensor
 extrinsics are not hardware calibration. LeKiwi bringup configures the SDK-style
 RGB/depth, pointcloud and synchronized IMU publishers; the renderer's internal
-camera name remains `oak_rgb` for plugin compatibility.
+camera is named `gemini2_rgb`.

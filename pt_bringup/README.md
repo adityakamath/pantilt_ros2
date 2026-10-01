@@ -7,7 +7,7 @@ System-level launch files for the Pan Tilt mechanism (`pt100`, `pt101`): the ful
 | Path | Purpose |
 |------|---------|
 | `launch/pantilt.launch.py` | Full system: includes `pt_control`'s launch file and the selected real camera driver; simulation skips both drivers |
-| `launch/gemini2.launch.py` | Upstream Orbbec Gemini 2 RGB/depth/IMU driver, a depth-derived `/gemini2/scan`, optional colored cloud and Cloudini compression, and configurable mount TF |
+| `launch/gemini2.launch.py` | Upstream Orbbec Gemini 2 RGB/depth/IMU driver, a depth-derived `/gemini2/scan`, and optional colored cloud with Cloudini compression; the host Xacro supplies the mount |
 | `launch/oakd.launch.py` | The OAK-D S2 driver, the `/oak/scan` slice and the optional point cloud and octomap nodes, in one composable node container |
 | `config/oakd_vio.yaml` | Camera base profile: RGB, depth and IMU; VIO and point cloud disabled |
 | `config/oakd_vio_pcl.yaml` | OAK-D overlay for `pointcloud:=true`: aligned depth, RGBD point cloud and its compression |
@@ -28,7 +28,7 @@ ROS 2 Kilted with `orbbec_camera`, `tf2_ros`, `depthai-ros` and `octomap_server`
 ros2 launch pt_bringup pantilt.launch.py                        # control + Gemini 2 driver
 ros2 launch pt_bringup pantilt.launch.py pointcloud:=true       # Gemini 2 colored cloud
 ros2 launch pt_bringup pantilt.launch.py sim:=true              # MuJoCo simulation, no camera driver
-ros2 launch pt_bringup gemini2.launch.py publish_mount_tf:=false # Gemini 2 camera only, no model required
+ros2 launch pt_bringup gemini2.launch.py                    # Gemini 2 camera driver and sensor frames
 ros2 launch pt_bringup oakd.launch.py                           # alternative OAK-D S2 camera only
 ```
 
@@ -53,16 +53,12 @@ ros2 launch pt_bringup pantilt.launch.py camera_config:=oakd_s2 enable_camera:=f
 | `camera_fps` | `15` | Shared RGB/depth rate for Gemini 2 or OAK-D S2: 5, 10, 15, or 30 Hz |
 | `pointcloud` | `false` | Gemini 2: one native colored cloud plus Cloudini; OAK-D S2: layer `oakd_vio_pcl.yaml` on the base profile |
 | `octomap` | `false` | OAK-D S2 only: run `octomap_server` on the point cloud; needs `pointcloud:=true` |
-| `tf_parent_frame` | empty | Full bringup chooses `oak_link` for Gemini 2 or `tilt_link` for OAK-D S2 |
 | `serial_number`, `usb_port` | empty | Gemini 2 device selectors |
-| `camera_mount_xyz` | `0 0 0` | Gemini parent-to-driver translation in meters; provisional until measured |
-| `camera_mount_rpy` | `3.141592653589793 0 0` | Gemini parent-to-driver roll, pitch, yaw in radians |
-| `publish_mount_tf` | `true` | Publish Gemini mount TF; disable if supplied elsewhere |
 | `sim` | `false` | Run in MuJoCo instead of on hardware; forces `use_sim_time` and mock motors, and skips the camera driver |
 | `mujoco_gui` | `false` | `sim` only: open the MuJoCo viewer (needs a display) |
 | `mujoco_scene` | `flat` | `sim` only: `flat`, `none` or a scene file |
 
-Both camera-only launches accept `enable_camera` (default `true`); false returns without loading driver dependencies or starting streaming helpers. LeKiwi forwards this flag directly. `oakd.launch.py` also takes `camera_fps`, `pointcloud`, `octomap` and `tf_parent_frame`. `octomap` and `tf_parent_frame` are also accepted by `pantilt.launch.py` and passed on.
+Both camera launches accept `enable_camera` (default `true`); false returns without loading driver dependencies or starting streaming helpers. LeKiwi forwards this flag directly. `oakd.launch.py` also takes `camera_fps`, `pointcloud` and `octomap`. Camera mount geometry is selected by `camera_config` in the pan-tilt Xacro; camera driver launches do not publish an alternate mount transform. Standalone camera launches therefore require a host robot description to provide the appropriate camera root mount.
 
 ## Configuration
 
@@ -98,7 +94,7 @@ DEPTHAI_DEBUG=1 ros2 launch pt_bringup pantilt.launch.py camera_config:=oakd_s2
 
 ## Using it on another robot
 
-To use either camera without pan-tilt control, launch `gemini2.launch.py` or `oakd.launch.py` with `tf_parent_frame` set to the host mount. For Gemini 2, also set the measured `camera_mount_xyz` and `camera_mount_rpy`; use `publish_mount_tf:=false` if the host already supplies `gemini2_link`. `pantilt.launch.py` runs its own controller manager, so a robot that shares the servo bus does not include it; see [`pt_control`](../pt_control/README.md#using-it-on-another-robot).
+To use either camera without pan-tilt control, launch `gemini2.launch.py` or `oakd.launch.py` alongside a host robot description that mounts `gemini2_link` or `oak_link` at the camera's measured pose. Keep that mount in the host Xacro; the camera launch only provides the sensor driver and its internal frames. `pantilt.launch.py` runs its own controller manager, so a robot that shares the servo bus does not include it; see [`pt_control`](../pt_control/README.md#using-it-on-another-robot).
 
 ## Camera selection
 
@@ -119,6 +115,6 @@ for regeneration, standalone tools, and the remaining simulated sensor limitatio
 
 `gemini2.launch.py` includes the upstream driver with namespace `gemini2`, RGB and registered depth enabled, IR disabled, and synchronized accelerometer/gyroscope output enabled. The Pi-oriented defaults request 640×360 RGB and 640×400 depth at 15 Hz; `camera_fps` selects 5, 10, 15 or 30 Hz. `pointcloud:=true` enables only `/gemini2/depth_registered/points`; uncolored `/gemini2/depth/points` stays off. Cloudini also publishes `/gemini2/depth_registered/points/compressed` at 1 mm resolution. It provides no VIO. `/gemini2/scan` is generated directly from the depth image in both point-cloud modes; publishing a cloud is unnecessary for the scan.
 
-The upstream driver owns all calibrated sensor transforms below `gemini2_link`. This wrapper only publishes `tf_parent_frame -> gemini2_link`; standalone `tf_parent_frame` defaults to `oak_link`. The zero translation is provisional, and the default π roll corrects the legacy inverted mount orientation. Measure the physical sensor offset before relying on cloud-to-robot registration. The old URDF `oak_imu_frame` is not used by the real driver.
+The upstream driver owns the calibrated sensor frames below `gemini2_link`. The selected pan-tilt Xacro supplies the physical `tilt_link -> gemini2_link` mount and its camera-specific orientation; the driver launch does not publish a competing mount transform. A camera-only `gemini2.launch.py` therefore requires a host robot description to provide `gemini2_link` at the measured mount pose. The separate `oak_imu_frame` belongs to the OAK-D S2 Xacro variant.
 
 Check detection with `ros2 run orbbec_camera list_devices_node`, then inspect `/gemini2/color/image_raw`, `/gemini2/depth/image_raw`, and `/gemini2/gyro_accel/sample`. For USB permission errors, install the upstream rules and reconnect the camera; see the [installation instructions](../README.md#installation).
