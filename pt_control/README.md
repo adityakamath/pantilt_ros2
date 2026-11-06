@@ -49,7 +49,7 @@ This is the dedicated-bus setup: it runs its own controller manager on its own s
 
 **`pantilt_controller.yaml`** defines `pantilt_controller`, a `ForwardCommandController` on the `position` interface for `shoulder_pan_joint` and `tilt_joint`. The launch file passes it to the spawner with `--param-file`, so a host robot that runs its own controller manager can use the same file without merging it into its parameters. Position limits come from the URDF.
 
-**`pantilt_config.yaml`** sets the controller manager update rate (50 Hz) and the joint state broadcaster's joints. The broadcaster publishes standard joint states to `/joint_states` and the extra motor data (voltage, temperature, current, moving flag) to `/dynamic_joint_states`.
+**`pantilt_config.yaml`** sets the controller manager update rate (50 Hz), the joint state broadcaster's joints and the `state_interfaces_broadcaster` interface list. The joint state broadcaster publishes standard joint states to `/joint_states`; the state interfaces broadcaster publishes the extra motor data (voltage, temperature, current, moving flag) to `/state_interfaces_broadcaster/values`. It is spawned on real hardware when `diagnostics:=true`.
 
 **`teleop_config.yaml`** maps the joystick:
 

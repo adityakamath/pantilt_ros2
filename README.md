@@ -308,7 +308,7 @@ Real Gemini 2 topics use `/gemini2/*` (see [Gemini 2 camera](#gemini-2-camera)).
 |--------------------------------|----------------------------------------|-------------|
 | `/pantilt_controller/commands` | `std_msgs/Float64MultiArray`           | Subscribed: position command `[pan_rad, tilt_rad]` |
 | `/joint_states`                | `sensor_msgs/JointState`               | Pan and tilt position, velocity, effort |
-| `/dynamic_joint_states`        | `control_msgs/DynamicJointState`       | Voltage, temperature, current and moving flag per joint |
+| `/state_interfaces_broadcaster/values` | `control_msgs/Float64Values`   | Effort, voltage, temperature, current and moving flag per joint (keys on `/state_interfaces_broadcaster/names`); real hardware with `diagnostics:=true` |
 | `/base/diagnostics`            | `diagnostic_msgs/DiagnosticArray`      | Motor health (with `diagnostics:=true`) |
 | `/joy`                         | `sensor_msgs/Joy`                      | Subscribed: joystick input from the external `joy` node |
 | `/oak/rgb/image_raw`           | `sensor_msgs/Image`                    | RGB stream |
@@ -337,7 +337,7 @@ base_footprint                  ← standalone root only
 
 - **Joystick does nothing.** Start `ros2 run joy joy_node`, and hold **L1**; without the deadman button `joy_teleop` publishes nothing.
 - **No hardware.** Use `use_mock:=true`. Topics, TF and controllers behave the same, with synthesised motor feedback.
-- **A motor does not reach the commanded position.** It may be obstructed or the centre calibration may be wrong. High `effort` or `current` in `/dynamic_joint_states` means the motor is stalled.
+- **A motor does not reach the commanded position.** It may be obstructed or the centre calibration may be wrong. High `effort` or `current` in `/state_interfaces_broadcaster/values` means the motor is stalled.
 - **Serial port not found.** Check the device name and pass it with `sts_serial_port` (see [Configuration](#serial-port)).
 
 ## License

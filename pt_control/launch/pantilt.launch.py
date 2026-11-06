@@ -228,6 +228,13 @@ def launch_setup(context):
         teleop_launch,
     ]
 
+    if diagnostics and hw_type != 'mujoco':
+        actions.append(TimerAction(period=2.5, actions=[Node(
+            package='controller_manager', executable='spawner',
+            arguments=['state_interfaces_broadcaster', '-c', 'controller_manager',
+                       '--controller-manager-timeout', '30'], output='both',
+        )]))
+
     if diagnostics:
         actions.append(TimerAction(period=3.0, actions=[motor_diagnostics]))
 

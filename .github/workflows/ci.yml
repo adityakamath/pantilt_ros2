@@ -22,10 +22,14 @@ jobs:
         run: ruff check .
 
   build:
-    name: colcon build (ros:kilted)
+    name: colcon build (ros:${{ matrix.ros_distro }})
     # Builds the packages and runs the pytest suites (URDF, MuJoCo models, launch arguments)
+    strategy:
+      fail-fast: false
+      matrix:
+        ros_distro: [kilted, lyrical]
     runs-on: ubuntu-latest
-    container: ros:kilted
+    container: ros:${{ matrix.ros_distro }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
@@ -36,30 +40,31 @@ jobs:
         run: |
           apt-get update && apt-get install -y --no-install-recommends \
             python3-pip python3-pytest \
-            ros-kilted-controller-manager \
-            ros-kilted-forward-command-controller \
-            ros-kilted-joint-state-broadcaster \
-            ros-kilted-joy-teleop \
-            ros-kilted-robot-state-publisher \
-            ros-kilted-ros2-control \
-            ros-kilted-xacro
+            ros-${{ matrix.ros_distro }}-controller-manager \
+            ros-${{ matrix.ros_distro }}-forward-command-controller \
+            ros-${{ matrix.ros_distro }}-joint-state-broadcaster \
+            ros-${{ matrix.ros_distro }}-joy-teleop \
+            ros-${{ matrix.ros_distro }}-robot-state-publisher \
+            ros-${{ matrix.ros_distro }}-state-interfaces-broadcaster \
+            ros-${{ matrix.ros_distro }}-ros2-control \
+            ros-${{ matrix.ros_distro }}-xacro
 
       - name: colcon build
         # pt_bringup is excluded: cloudini, point_cloud_interfaces and depthai-ros are not plain apt packages
         run: |
-          . /opt/ros/kilted/setup.sh
+          . /opt/ros/${{ matrix.ros_distro }}/setup.sh
           colcon build --packages-select pt_description pt_mujoco pt_control
 
       - name: xacro sanity check
         run: |
-          . /opt/ros/kilted/setup.sh
+          . /opt/ros/${{ matrix.ros_distro }}/setup.sh
           . install/setup.sh
           xacro src/pantilt_ros2/pt_description/urdf/pantilt.urdf.xacro > /dev/null
 
       - name: pytest
         # pt_bringup is not built here (see above) but its launch file is only parsed, not started.
         run: |
-          . /opt/ros/kilted/setup.sh
+          . /opt/ros/${{ matrix.ros_distro }}/setup.sh
           . install/setup.sh
           pip install --break-system-packages -r src/pantilt_ros2/pt_mujoco/requirements.txt
           pytest src/pantilt_ros2/pt_description/test src/pantilt_ros2/pt_control/test src/pantilt_ros2/pt_mujoco/test

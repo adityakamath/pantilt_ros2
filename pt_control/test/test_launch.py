@@ -74,3 +74,14 @@ def test_oak_sim_launch_slices_the_simulated_depth_into_oak_scan_like_the_real_b
     assert "executable='depthimage_to_laserscan_node'" in source
     assert "('depth', '/oak/stereo/image_raw')" in source and "('scan', '/oak/scan')" in source
     assert (REPOSITORY / 'pt_mujoco/config/mujoco_depth_to_scan.yaml').is_file()
+
+
+def test_state_interfaces_broadcaster_lists_every_pantilt_joint_for_motor_diagnostics():
+    cfg = yaml.safe_load((REPOSITORY / 'pt_control/config/pantilt_config.yaml').read_text())
+    manager = cfg['controller_manager']['ros__parameters']
+    assert manager['state_interfaces_broadcaster']['type'] == (
+        'state_interfaces_broadcaster/StateInterfacesBroadcaster')
+    interfaces = cfg['state_interfaces_broadcaster']['ros__parameters']['interfaces']
+    joints = cfg['joint_state_broadcaster']['ros__parameters']['joints']
+    assert interfaces == [f'{j}/{i}' for j in joints
+                          for i in ('effort', 'voltage', 'temperature', 'current', 'is_moving')]
