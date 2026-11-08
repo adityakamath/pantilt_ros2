@@ -27,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ros_distro: [kilted, lyrical]
+        ros_distro: [kilted, jazzy, lyrical]
     runs-on: ubuntu-latest
     container: ros:${{ matrix.ros_distro }}
     timeout-minutes: 10
